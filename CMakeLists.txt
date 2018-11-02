@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(terse-lambda
-  VERSION 0.0.1
+  VERSION 0.1.0
   LANGUAGES CXX
   DESCRIPTION "Terse lambdas for C++"
 )
@@ -36,4 +36,43 @@ if(BUILD_TESTING AND "${is_root_project}")
   add_subdirectory(tests)
 endif()
 
+include(GNUInstallDirs)
+set(INSTALL_CONFIGDIR "${CMAKE_INSTALL_LIBDIR}/cmake/tl")
 
+install(TARGETS tl
+  EXPORT tl-targets
+  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+)
+
+install(EXPORT tl-targets
+  FILE tl-targets.cmake
+  NAMESPACE tl::
+  DESTINATION "${INSTALL_CONFIGDIR}"
+)
+
+install(DIRECTORY include/
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+)
+
+include(CMakePackageConfigHelpers)
+
+# Not architecture sensitive
+set(CMAKE_SIZEOF_VOID_P)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/tlConfigVersion.cmake"
+  VERSION "${PROJECT_VERSION}"
+  COMPATIBILITY SameMinorVersion
+)
+
+configure_package_config_file(
+  cmake/tlConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/tlConfig.cmake"
+  INSTALL_DESTINATION "${INSTALL_CONFIGDIR}"
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/tlConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/tlConfigVersion.cmake"
+  DESTINATION "${INSTALL_CONFIGDIR}"
+)
