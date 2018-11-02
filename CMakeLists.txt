@@ -15,6 +15,7 @@ option(BUILD_TESTING "Build tests" ON)
 
 find_package(Boost REQUIRED)
 
+# Target
 add_library(tl INTERFACE)
 add_library(tl::tl ALIAS tl)
 target_include_directories(tl
@@ -31,11 +32,13 @@ target_compile_features(tl
     cxx_std_17
 )
 
+# Tests
 if(BUILD_TESTING AND "${is_root_project}")
   enable_testing()
   add_subdirectory(tests)
 endif()
 
+# Install
 include(GNUInstallDirs)
 set(INSTALL_CONFIGDIR "${CMAKE_INSTALL_LIBDIR}/cmake/tl")
 
