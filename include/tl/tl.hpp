@@ -17,7 +17,7 @@ Distributed under the MIT License
 // Implementations must ignore attributes if they don't do anything with them.
 // Unfortunately, MSVC doesn't obey this rule, and MSVC's __forceinline is not
 // an attribute.
-#if MSVC
+#ifdef _MSC_VER
 #define TL_ALWAYS_INLINE __forceinline
 #else
 #define TL_ALWAYS_INLINE [[gnu::always_inline]]

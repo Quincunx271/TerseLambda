@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(terse-lambda
-  VERSION 0.1.0
+  VERSION 0.1.1
   LANGUAGES CXX
   DESCRIPTION "Terse lambdas for C++"
 )
