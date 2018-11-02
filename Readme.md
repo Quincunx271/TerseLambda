@@ -2,7 +2,9 @@
 
 Terse lambdas for C++. `[] TL(_1.name)` == `[] (auto&& it) { return it.name; }`
 
-# Why? C++ already has lambdas. Aren't they good enough?
+[Try it online](https://godbolt.org/z/k4qNfW)
+
+## Why? C++ already has lambdas. Aren't they good enough?
 
 Not really. See vector-of-bool's blog post [*Now I Am Become Perl*][vob-perl].
 
@@ -62,7 +64,7 @@ This library gives very similar syntax to both of the proposals:
 [] TLN(lhs, rhs) { return lhs.size() < rhs.size(); }
 ```
 
-# Should I use this?
+## Should I use this?
 
 No. Seriously. You really should not use this in a production codebase. It's
 okay to try it out for fun, but you should not be introducing changes to the
@@ -71,24 +73,26 @@ very syntax of C++ in your company's code.
 If you really do feel the need to use this, you've been warned. Don't blame me
 when your coworkers complain that they can't read your code.
 
-# Overview
+## Overview
 
 This library provides a few macros for writing terse lambdas:
 
-* `TL(...)`. Terse Lambda. `[] TL(_1.name)`.
-* `TLN(...)`. Terse Lambda, Named. `[] TLN(a) { return a.name; }`.
-* `TLG(N, ...)`. Terse Lambda, Generic. `[] TLG(1, _1.name)`.
-* `TLV(...)`. Terse Lambda, Variadic. `[] TLV(do_something(_args...))`.
+* [`TL(...)`][doc-TL]. Terse Lambda. `[] TL(_1.name)`.
+* [`TLN(...)`][doc-TLN]. Terse Lambda, Named. `[] TLN(a) { return a.name; }`.
+* [`TLG(N, ...)`][doc-TLG]. Terse Lambda, Generic. `[] TLG(1, _1.name)`.
+* [`TLV(...)`][doc-TLV]. Terse Lambda, Variadic.
+  `[] TLV(do_something(_args...))`.
 
 Of course, lambda captures can be specified as normal: `[i] TL(_1 + i)`.
 
 Some utility macros:
 
-* `TL_FWD(...)`. Forwards the argument as by `std::forward`.
+* [`TL_FWD(...)`][doc-TL_FWD]. Forwards the argument as by `std::forward`.
   `do_something(TL_FWD(_1))`
-* `TL_RET(...)`. Returns the expression, respecting `noexcept` and sfinae.
+* [`TL_RET(...)`][doc-TL_RET]. Returns the expression, respecting `noexcept` and
+  SFINAE.
 
-# TL - Terse Lambda
+## TL - Terse Lambda
 
 ```c++
 [] TL(_1.name)
@@ -105,7 +109,9 @@ Limitations:
   non-terse lambda.
 * Not `noexcept` aware or SFINAE friendly. Use `TLN`, `TLG`, or `TLV` instead.
 
-# TLN - Terse Lambda, Named
+[Overview][doc-overview]
+
+## TLN - Terse Lambda, Named
 
 ```c++
 [] TLN(a) { return a.name; }
@@ -131,7 +137,9 @@ Limitations:
 * Does not work with no arguments. Just use a regular lambda:
   `[]() TL_RET(a.name)`
 
-# TLG - Terse Lambda, Generic
+[Overview][doc-overview]
+
+## TLG - Terse Lambda, Generic
 
 ```c++
 [] TLG(1, _1.name)
@@ -145,7 +153,9 @@ Limitations:
 
 * Cannot access parameters as a parameter pack. Use `TLV` instead.
 
-# TLV - Terse Lambda, Variadic-only
+[Overview][doc-overview]
+
+## TLV - Terse Lambda, Variadic-only
 
 ```c++
 [] TLV(do_something(_args...))
@@ -157,7 +167,9 @@ Limitations:
 
 * Cannot access arguments with `_n` syntax.
 
-# TL_FWD
+[Overview][doc-overview]
+
+## TL_FWD
 
 ```c++
 TL_FWD(x)
@@ -165,7 +177,9 @@ TL_FWD(x)
 
 Forwards the parameter as if by `std::forward<decltype(x)>(x)`.
 
-# TL_RET
+[Overview][doc-overview]
+
+## TL_RET
 
 ```c++
 TL_RET(<expr>)
@@ -189,6 +203,16 @@ Limitations:
 * Inhibits the use of C++20 constraints, which appear *after* the `noexcept`
   specification.
 
+[Overview][doc-overview]
+
 
   [vob-perl]: https://vector-of-bool.github.io/2018/10/31/become-perl.html
   [P0573]: https://wg21.link/P0573
+
+  [doc-overview]: #overview
+  [doc-TL]: #tl---terse-lambda
+  [doc-TLN]: #tln---terse-lambda-named
+  [doc-TLG]: #tlg---terse-lambda-generic
+  [doc-TLV]: #tlv---terse-lambda-variadic-only
+  [doc-TL_FWD]: #tl_fwd
+  [doc-TL_RET]: #tl_ret
