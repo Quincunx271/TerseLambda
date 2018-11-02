@@ -5,7 +5,6 @@
 #include <boost/preprocessor/control/if.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/seq/enum.hpp>
-#include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/seq/transform.hpp>
 #include <boost/preprocessor/variadic/to_seq.hpp>
 
@@ -16,10 +15,6 @@
 #define TL_ALWAYS_INLINE __forceinline
 #else
 #define TL_ALWAYS_INLINE [[gnu::always_inline]]
-#endif
-
-#ifndef TL_MAX_PARAMS
-#define TL_MAX_PARAMS 8
 #endif
 
 // Not using std::forward, but rolling our own. This enables running this header
@@ -33,24 +28,6 @@
         return __VA_ARGS__;                                                    \
     }
 
-// Dev: Produces a Boost.PP sequence from 1 to N inclusive: (1)(2)(...)(N)
-#define TL_DETAIL_NUM_SEQ(N)                                                   \
-    BOOST_PP_VARIADIC_TO_SEQ(BOOST_PP_ENUM_SHIFTED_PARAMS(BOOST_PP_INC(N), ))
-
-// Dev: produces a sequence of declarations which alias the function parameter
-// with the name `_args`
-// [[maybe_unused]] auto&& _1 = ::tl::detail::nth<0>(FWD(args)...);
-// [[maybe_unused]] auto&& _2 = ::tl::detail::nth<1>(FWD(args)...);
-// ...
-
-#define TL_DETAIL_CREATE_VAR_N(s, data, elem)                                  \
-    [[maybe_unused]] auto&& BOOST_PP_CAT(_, elem)                              \
-        = ::tl::detail::nth<elem - 1>(TL_FWD(_args)...);
-
-#define TL_DETAIL_ARGS                                                         \
-    BOOST_PP_SEQ_FOR_EACH(                                                     \
-        TL_DETAIL_CREATE_VAR_N, , TL_DETAIL_NUM_SEQ(TL_MAX_PARAMS))
-
 // Creates a terse lambda with the given expression.
 // [] TL(_1.do_something())
 // @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
@@ -58,7 +35,11 @@
 #define TL(...)                                                                \
     (auto&&... _args)->decltype(auto)                                          \
     {                                                                          \
-        TL_DETAIL_ARGS;                                                        \
+        [[maybe_unused]] auto&& _1 = ::tl::detail::nth<0>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _2 = ::tl::detail::nth<1>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _3 = ::tl::detail::nth<2>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _4 = ::tl::detail::nth<3>(TL_FWD(_args)...);   \
+                                                                               \
         return __VA_ARGS__;                                                    \
     }
 
@@ -70,6 +51,10 @@
     {                                                                          \
         return __VA_ARGS__;                                                    \
     }
+
+// Dev: Produces a Boost.PP sequence from 1 to N inclusive: (1)(2)(...)(N)
+#define TL_DETAIL_NUM_SEQ(N)                                                   \
+    BOOST_PP_VARIADIC_TO_SEQ(BOOST_PP_ENUM_SHIFTED_PARAMS(BOOST_PP_INC(N), ))
 
 // Dev: creates `[[maybe_unused]] auto&&` function parameters.
 // [](
