@@ -1,3 +1,9 @@
+/*
+Copyright Justin Bassett 2018
+Distributed under the MIT License
+(See the accompanying LICENSE file or https://opensource.org/licenses/MIT)
+*/
+
 #pragma once
 
 #include <boost/preprocessor/arithmetic/inc.hpp>
