@@ -1,0 +1,26 @@
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: None
+AlwaysBreakTemplateDeclarations: true
+BasedOnStyle: WebKit
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: true
+IndentWidth: 4
+Cpp11BracedListStyle:                true
+NamespaceIndentation:                All
+Standard:                            Cpp11
+ColumnLimit: 80
+PenaltyReturnTypeOnItsOwnLine: 50
+PenaltyBreakBeforeFirstCallParameter: 50

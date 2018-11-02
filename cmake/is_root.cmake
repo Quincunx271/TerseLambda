@@ -1,0 +1,8 @@
+function(is_root OUT)
+  get_directory_property(has_parent PARENT_DIRECTORY)
+  if(has_parent)
+    set("${OUT}" FALSE PARENT_SCOPE)
+  else()
+    set("${OUT}" TRUE PARENT_SCOPE)
+  endif()
+endfunction()
