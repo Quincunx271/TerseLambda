@@ -46,6 +46,36 @@ int main()
         assert([] TL((_args + ...))(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
                    14, 15, 16, 17, 18, 19, 20)
             == 20 * (20 + 1) / 2);
+
+        // SFINAE-friendly
+        struct foo
+        {
+            int value;
+        };
+
+        static_assert(overload{
+                          [] TL(_1.value + _2.value),
+                          [](auto&& it, auto&&) { return it.value; },
+                      }(foo{42}, foo{2})
+            == 44);
+
+        static_assert(overload{
+                          [] TL((_args.value + ...)),
+                          [](auto&& it, auto&&) { return it.value; },
+                      }(foo{42}, foo{2})
+            == 44);
+
+        static_assert(overload{
+                          [] TL(_1.value + _2.thing),
+                          [](auto&& it, auto&&) { return it.value; },
+                      }(foo{42}, foo{2})
+            == 42);
+
+        static_assert(overload{
+                          [] TL((_args.thing + ...)),
+                          [](auto&& it, auto&&) { return it.value; },
+                      }(foo{42}, foo{2})
+            == 42);
     }
     {
         // capturing works

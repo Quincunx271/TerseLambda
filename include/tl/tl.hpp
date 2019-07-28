@@ -39,7 +39,15 @@ Distributed under the MIT License
 // @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
 // attributes are necessary
 #define TL(...)                                                                \
-    (auto&&... _args)->decltype(auto)                                          \
+    (auto&&... _args)                                                          \
+        ->decltype(auto) requires requires(                                    \
+            ::tl::detail::nth_type<0, decltype(_args)&&...> _1,                \
+            ::tl::detail::nth_type<1, decltype(_args)&&...> _2,                \
+            ::tl::detail::nth_type<2, decltype(_args)&&...> _3,                \
+            ::tl::detail::nth_type<3, decltype(_args)&&...> _4)                \
+    {                                                                          \
+        __VA_ARGS__;                                                           \
+    }                                                                          \
     {                                                                          \
         [[maybe_unused]] auto&& _1 = ::tl::detail::nth<0>(TL_FWD(_args)...);   \
         [[maybe_unused]] auto&& _2 = ::tl::detail::nth<1>(TL_FWD(_args)...);   \
@@ -129,4 +137,23 @@ namespace tl::detail {
             return not_a_parameter{};
         }
     }
+
+    template <int I, typename... Args>
+    extern not_a_parameter nth_ref;
+
+    template <typename T0, typename... Args>
+    extern T0 nth_ref<0, T0, Args...>;
+
+    template <typename T0, typename T1, typename... Args>
+    extern T1 nth_ref<1, T0, T1, Args...>;
+
+    template <typename T0, typename T1, typename T2, typename... Args>
+    extern T2 nth_ref<2, T0, T1, T2, Args...>;
+
+    template <typename T0, typename T1, typename T2, typename T3,
+        typename... Args>
+    extern T3 nth_ref<3, T0, T1, T2, T3, Args...>;
+
+    template <int I, typename... Args>
+    using nth_type = decltype(nth_ref<I, Args...>);
 }
