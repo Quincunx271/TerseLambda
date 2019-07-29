@@ -40,7 +40,7 @@ Distributed under the MIT License
 // @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
 // attributes are necessary
 #define TL(...)                                                                \
-    () {                                                                       \
+    <typename> () {                                                            \
         return ::tl::detail::overload {                                        \
             [] ([[maybe_unused]] auto&& _1)                                    \
             -> decltype(auto)                                                  \
@@ -88,7 +88,7 @@ Distributed under the MIT License
                 return __VA_ARGS__;                                            \
             },                                                                 \
         };                                                                     \
-    } ()
+    }.template operator()<int>()
 // clang-format on
 
 // Creates a variadic-only terse lambda.
