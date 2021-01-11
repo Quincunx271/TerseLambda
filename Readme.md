@@ -55,13 +55,10 @@ hyper-abbreviated syntax of [P0573][P0573], which also proposes the more
 conservative `[](lhs, rhs) => lhs.size() < rhs.size()`. Neither syntax is in C++
 today.
 
-This library gives very similar syntax to both of the proposals:
+This library gives very similar syntax to the former proposal:
 
 ```c++
 [] TL(_1.size() < _2.size())
-[] TLN(lhs, rhs) TL_RET(lhs.size() < rhs.size())
-// Or more explicitly:
-[] TLN(lhs, rhs) { return lhs.size() < rhs.size(); }
 ```
 
 ## Should I use this?
@@ -75,23 +72,14 @@ when your coworkers complain that they can't read your code.
 
 ## Overview
 
-This library provides a few macros for writing terse lambdas:
+This library provides a single macro for writing terse lambdas:
 
 * [`TL(...)`][doc-TL]. Terse Lambda. `[] TL(_1.name)`.
-* [`TLN(...)`][doc-TLN]. Terse Lambda, Named. `[] TLN(a) { return a.name; }`.
-* [`TLG(N, ...)`][doc-TLG]. Terse Lambda, Generic. `[] TLG(1, _1.name)`.
-* [`TLV(...)`][doc-TLV]. Terse Lambda, Variadic.
-  `[] TLV(do_something(_args...))`.
 
-Of course, lambda captures can be specified as normal: `[i] TL(_1 + i)`.
-
-Some utility macros:
+As well as a utility macro:
 
 * [`TL_FWD(...)`][doc-TL_FWD]. Forwards the argument as by `std::forward`.
-  `do_something(TL_FWD(_1))`
-* [`TL_RET(...)`][doc-TL_RET]. Returns the expression, respecting `noexcept` and
-  SFINAE.
-
+  `do_something(TL_FWD(_1))`.
 ## TL - Terse Lambda
 
 ```c++
@@ -101,73 +89,16 @@ Some utility macros:
 This macro defines a lambda whose parameters can be accessed with `_n`, where
 `n` is a number. Alternatively, the parameters can be accessed as a parameter
 pack via the `_args` parameter: `[] TL(do_something(_args...))`.
+Of course, lambda captures can be specified as normal: `[i] TL(_1 + i)`.
+`TL` is `noexcept` and SFINAE\* friendly.
 
 Limitations:
 
-* `_1`, `_2`, `_3`, `_4`. There's no `_5` or above. If you really need that many
-  parameters, you shouldn't be using numbered parameters. Use `TLN` or a
-  non-terse lambda.
-* Not `noexcept` aware or SFINAE friendly. Use `TLN`, `TLG`, or `TLV` instead.
-
-[Overview][doc-overview]
-
-## TLN - Terse Lambda, Named
-
-```c++
-[] TLN(a) { return a.name; }
-```
-
-The most versatile of all terse lambdas, `TLN` defines a macro argument list
-with the names you give it. This does not give you an automatic lambda body;
-you have to define that yourself. Can be combined with `TL_RET` for a terse
-body:
-
-```c++
-[] TLN(a) TL_RET(a.name)
-```
-
-Variadic lambdas can be declared by prepending a name with `...`:
-
-```c++
-[] TLN(...args) TL_RET(do_something(args...))
-```
-
-Limitations:
-
-* Does not work with no arguments. Just use a regular lambda:
-  `[]() TL_RET(a.name)`
-
-[Overview][doc-overview]
-
-## TLG - Terse Lambda, Generic
-
-```c++
-[] TLG(1, _1.name)
-```
-
-This macro works around the limitations of `TL` by requiring you to specify the
-number of function parameters as the first argument. Doing so allows `TLG` to be
-`noexcept` aware and SFINAE friendly, but at the cost of parameter packs.
-
-Limitations:
-
-* Cannot access parameters as a parameter pack. Use `TLV` instead.
-
-[Overview][doc-overview]
-
-## TLV - Terse Lambda, Variadic-only
-
-```c++
-[] TLV(do_something(_args...))
-```
-
-Variadic-only, `noexcept` aware, and SFINAE friendly terse lambda.
-
-Limitations:
-
-* Cannot access arguments with `_n` syntax.
-
-[Overview][doc-overview]
+* `_1`, `_2`, `_3`, `_4`. There's no `_5` or above. You likely should not be
+  using a terse lambda if you need numbered arguments that high.
+* Although `TL` is mostly SFINAE-friendly, there is a rough edge when trying to
+  overload it with a function that takes a fixed number of unconstrained
+  arguments; it will call the overload rather than the terse lambda.
 
 ## TL_FWD
 
@@ -177,42 +108,9 @@ TL_FWD(x)
 
 Forwards the parameter as if by `std::forward<decltype(x)>(x)`.
 
-[Overview][doc-overview]
-
-## TL_RET
-
-```c++
-TL_RET(<expr>)
-```
-
-Returns the expression in a `noexcept` aware and SFINAE friendly manner.
-Designed to be used directly after the closing `)` of a function parameter list.
-
-Expands to:
-
-```c++
-noexcept(noexcept(<expr>))
-    -> decltype(<expr>)
-{
-    return <expr>;
-}
-```
-
-Limitations:
-
-* Inhibits the use of C++20 constraints, which appear *after* the `noexcept`
-  specification.
-
-[Overview][doc-overview]
-
-
   [vob-perl]: https://vector-of-bool.github.io/2018/10/31/become-perl.html
   [P0573]: https://wg21.link/P0573
 
   [doc-overview]: #overview
   [doc-TL]: #tl---terse-lambda
-  [doc-TLN]: #tln---terse-lambda-named
-  [doc-TLG]: #tlg---terse-lambda-generic
-  [doc-TLV]: #tlv---terse-lambda-variadic-only
   [doc-TL_FWD]: #tl_fwd
-  [doc-TL_RET]: #tl_ret

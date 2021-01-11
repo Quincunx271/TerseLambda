@@ -1,18 +1,10 @@
 /*
-Copyright Justin Bassett 2018
+Copyright Justin Bassett 2018-2021
 Distributed under the MIT License
 (See the accompanying LICENSE file or https://opensource.org/licenses/MIT)
 */
 
 #pragma once
-
-#include <boost/preprocessor/arithmetic/inc.hpp>
-#include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/control/if.hpp>
-#include <boost/preprocessor/repetition/enum_shifted_params.hpp>
-#include <boost/preprocessor/seq/enum.hpp>
-#include <boost/preprocessor/seq/transform.hpp>
-#include <boost/preprocessor/variadic/to_seq.hpp>
 
 // Implementations must ignore attributes if they don't do anything with them.
 // Unfortunately, MSVC doesn't obey this rule, and MSVC's __forceinline is not
@@ -27,12 +19,6 @@ Distributed under the MIT License
 // through the preprocessor while still getting meaningful output
 
 #define TL_FWD(...) static_cast<decltype(__VA_ARGS__)&&>(__VA_ARGS__)
-
-#define TL_RET(...)                                                            \
-    noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)                     \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
-    }
 
 // Creates a terse lambda with the given expression.
 // [] TL(_1.do_something())
@@ -63,56 +49,6 @@ Distributed under the MIT License
                                                                                \
         return __VA_ARGS__;                                                    \
     }
-
-// Creates a variadic-only terse lambda.
-// [] TLV(call_something(_args...))
-// @note `noexcept`-friendly and sfinae-friendly.
-#define TLV(...)                                                               \
-    (auto&&... _args) noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)   \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
-    }
-
-// Dev: Produces a Boost.PP sequence from 1 to N inclusive: (1)(2)(...)(N)
-#define TL_DETAIL_NUM_SEQ(N)                                                   \
-    BOOST_PP_VARIADIC_TO_SEQ(BOOST_PP_ENUM_SHIFTED_PARAMS(BOOST_PP_INC(N), ))
-
-// Dev: creates `[[maybe_unused]] auto&&` function parameters.
-// [](
-//     [[maybe_unused]] auto&& _1,
-//     [[maybe_unused]] auto&& _2,
-//     ...
-// )
-#define TL_DETAIL_CREATE_ARG_N(s, data, elem)                                  \
-    [[maybe_unused]] auto&& BOOST_PP_CAT(_, elem)
-
-#define TL_DETAIL_CREATE_ARGS(N)                                               \
-    BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(                                  \
-        TL_DETAIL_CREATE_ARG_N, , TL_DETAIL_NUM_SEQ(N)))
-
-// Creates a generic terse lambda
-// [] TLG(1, _1.do_something())
-// @argument1 The number of parameters on the lambda. Must be a preprocessor
-// number (either a #define or a literal)
-// @note `noexcept`-friendly and sfinae-friendly.
-// @note Not variadic.
-#define TLG(N, ...)                                                            \
-    BOOST_PP_IF(N, (TL_DETAIL_CREATE_ARGS(N)), ())                             \
-    noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)                     \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
-    }
-
-#define TL_DETAIL_CREATE_NAMED_ARG(s, data, elem) auto&& elem
-
-// Creates a terse lambda with argument names
-// [] TLN(a, b) { return a + b; }
-// [] TLN(a, b) TL_RET(a + b);
-// The most versatile of all terse lambdas.
-// @note As `noexcept`-friendly and sfinae-friendly as you write it
-#define TLN(...)                                                               \
-    (BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(                                 \
-        TL_DETAIL_CREATE_NAMED_ARG, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))))
 
 namespace tl::detail {
     struct not_a_parameter
