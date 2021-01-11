@@ -57,6 +57,32 @@ int main()
                           [](auto&&...) { return -10; },
                       }(foo {42}, foo {2})
             == -10);
+
+        // noexcept-friendly
+        struct bar
+        {
+            bool yes() const noexcept
+            {
+                return true;
+            }
+            bool no() const
+            {
+                return false;
+            }
+        };
+        struct baz
+        {
+            bool yes() const noexcept(false)
+            {
+                return true;
+            }
+        };
+        static_assert(noexcept([] TL(_1.yes())(bar {})));
+        static_assert(!noexcept([] TL(_1.no())(bar {})));
+        static_assert(noexcept([] TL((_args.yes() && ...))(bar {})));
+        static_assert(!noexcept([] TL((_args.no() && ...))(bar {})));
+        static_assert(noexcept([] TL((_args.no() && ...))()));
+        static_assert(!noexcept([] TL((_args.yes() && ...))(bar {}, baz {})));
     }
 
     // TLN(...)

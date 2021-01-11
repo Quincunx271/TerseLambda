@@ -39,7 +39,14 @@ Distributed under the MIT License
 // @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
 // attributes are necessary
 #define TL(...)                                                                \
-    <typename... Args>(Args && ... _args)                                      \
+    <typename... Args>(Args && ... _args) noexcept(                            \
+        decltype([]([[maybe_unused]] auto&& _1, [[maybe_unused]] auto&& _2,    \
+                     [[maybe_unused]] auto&& _3, [[maybe_unused]] auto&& _4) { \
+            return ::tl::detail::bool_t<noexcept(__VA_ARGS__)> {};             \
+        }(::tl::detail::nth<0>(TL_FWD(_args)...),                              \
+                     ::tl::detail::nth<1>(TL_FWD(_args)...),                   \
+                     ::tl::detail::nth<2>(TL_FWD(_args)...),                   \
+                     ::tl::detail::nth<3>(TL_FWD(_args)...)))::value)          \
         ->decltype(auto) requires requires(                                    \
             ::tl::detail::nth_type<0, Args&&...> _1,                           \
             ::tl::detail::nth_type<1, Args&&...> _2,                           \
@@ -156,4 +163,10 @@ namespace tl::detail {
 
     template <int I, typename... Args>
     using nth_type = decltype(nth_ref<I, Args...>);
+
+    template <bool V>
+    struct bool_t
+    {
+        static constexpr bool value = V;
+    };
 }
