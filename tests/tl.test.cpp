@@ -16,7 +16,7 @@ namespace {
     };
 
     template <typename... Ls>
-    overload(Ls...)->overload<Ls...>;
+    overload(Ls...) -> overload<Ls...>;
 }
 
 int main()
@@ -46,17 +46,17 @@ int main()
             int value;
         };
 
-        static_assert(overload{
+        static_assert(overload {
                           [] TL(_1.value + _2.value),
-                          [](auto&& it, auto&&) { return it.value; },
-                      }(foo{42}, foo{2})
+                          [](auto&&...) { return -10; },
+                      }(foo {42}, foo {2})
             == 44);
 
-        static_assert(overload{
+        static_assert(overload {
                           [] TL(_1.value + _2.thing),
-                          [](auto&& it, auto&&) { return it.value; },
-                      }(foo{42}, foo{2})
-            == 42);
+                          [](auto&&...) { return -10; },
+                      }(foo {42}, foo {2})
+            == -10);
     }
 
     // TLN(...)
@@ -115,10 +115,10 @@ int main()
             int value;
         };
 
-        static_assert(overload{
+        static_assert(overload {
                           [] TLV((_args.thing + ...)),
                           [](auto&& it) { return it.value; },
-                      }(foo{42})
+                      }(foo {42})
             == 42);
     }
     {
@@ -156,10 +156,10 @@ int main()
             int value;
         };
 
-        static_assert(overload{
+        static_assert(overload {
                           [] TLG(2, _1.value + _2.thing),
                           [](auto&& it, auto&&) { return it.value; },
-                      }(foo{42}, foo{2})
+                      }(foo {42}, foo {2})
             == 42);
     }
     {

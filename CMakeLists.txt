@@ -13,6 +13,14 @@ is_root(is_root_project)
 
 option(BUILD_TESTING "Build tests" ON)
 
+if(BUILD_TESTING)
+  enable_testing()
+
+  # For Boost:
+  include(pmm.cmake)
+  pmm(CONAN)
+endif()
+
 find_package(Boost REQUIRED)
 
 # Target
@@ -29,7 +37,7 @@ target_link_libraries(tl
 )
 target_compile_features(tl
   INTERFACE
-    cxx_std_17
+    cxx_std_20
 )
 
 # Tests

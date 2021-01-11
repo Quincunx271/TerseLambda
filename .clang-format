@@ -18,9 +18,9 @@ BraceWrapping:
   SplitEmptyRecord: false
   SplitEmptyNamespace: true
 IndentWidth: 4
-Cpp11BracedListStyle:                true
-NamespaceIndentation:                All
-Standard:                            Cpp11
+Cpp11BracedListStyle: true
+NamespaceIndentation: All
+Standard: Cpp11
 ColumnLimit: 80
 PenaltyReturnTypeOnItsOwnLine: 50
 PenaltyBreakBeforeFirstCallParameter: 50

@@ -34,62 +34,28 @@ Distributed under the MIT License
         return __VA_ARGS__;                                                    \
     }
 
-// clang-format off
 // Creates a terse lambda with the given expression.
 // [] TL(_1.do_something())
 // @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
 // attributes are necessary
 #define TL(...)                                                                \
-    <typename> () {                                                            \
-        return ::tl::detail::overload {                                        \
-            [] ([[maybe_unused]] auto&& _1)                                    \
-            -> decltype(auto)                                                  \
-                requires requires(                                             \
-                    ::tl::detail::not_a_parameter<decltype(_1)> _2,            \
-                    decltype(_2) _3,                                           \
-                    decltype(_3) _4)                                           \
-                { __VA_ARGS__; }                                               \
-            {                                                                  \
-                [[maybe_unused]]                                               \
-                ::tl::detail::not_a_parameter<decltype(_1)> _2, _3, _4;        \
-                return __VA_ARGS__;                                            \
-            },                                                                 \
-            [] ([[maybe_unused]] auto&& _1,                                    \
-                [[maybe_unused]] auto&& _2)                                    \
-            -> decltype(auto)                                                  \
-                requires requires(                                             \
-                    ::tl::detail::not_a_parameter<decltype(_1)> _3,            \
-                    decltype(_3) _4)                                           \
-                { __VA_ARGS__; }                                               \
-            {                                                                  \
-                [[maybe_unused]]                                               \
-                ::tl::detail::not_a_parameter<decltype(_1)> _3, _4;            \
-                return __VA_ARGS__;                                            \
-            },                                                                 \
-            [] ([[maybe_unused]] auto&& _1,                                    \
-                [[maybe_unused]] auto&& _2,                                    \
-                [[maybe_unused]] auto&& _3)                                    \
-            -> decltype(auto)                                                  \
-                requires requires(                                             \
-                    ::tl::detail::not_a_parameter<decltype(_1)> _4)            \
-                { __VA_ARGS__; }                                               \
-            {                                                                  \
-                [[maybe_unused]]                                               \
-                ::tl::detail::not_a_parameter<decltype(_1)> _4;                \
-                return __VA_ARGS__;                                            \
-            },                                                                 \
-            [] ([[maybe_unused]] auto&& _1,                                    \
-                [[maybe_unused]] auto&& _2,                                    \
-                [[maybe_unused]] auto&& _3,                                    \
-                [[maybe_unused]] auto&& _4)                                    \
-            -> decltype(auto)                                                  \
-                requires requires { __VA_ARGS__; }                             \
-            {                                                                  \
-                return __VA_ARGS__;                                            \
-            },                                                                 \
-        };                                                                     \
-    }.template operator()<int>()
-// clang-format on
+    <typename... Args>(Args && ... _args)                                      \
+        ->decltype(auto) requires requires(                                    \
+            ::tl::detail::nth_type<0, Args&&...> _1,                           \
+            ::tl::detail::nth_type<1, Args&&...> _2,                           \
+            ::tl::detail::nth_type<2, Args&&...> _3,                           \
+            ::tl::detail::nth_type<3, Args&&...> _4, Args && ... _args)        \
+    {                                                                          \
+        __VA_ARGS__;                                                           \
+    }                                                                          \
+    {                                                                          \
+        [[maybe_unused]] auto&& _1 = ::tl::detail::nth<0>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _2 = ::tl::detail::nth<1>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _3 = ::tl::detail::nth<2>(TL_FWD(_args)...);   \
+        [[maybe_unused]] auto&& _4 = ::tl::detail::nth<3>(TL_FWD(_args)...);   \
+                                                                               \
+        return __VA_ARGS__;                                                    \
+    }
 
 // Creates a variadic-only terse lambda.
 // [] TLV(call_something(_args...))
@@ -142,18 +108,8 @@ Distributed under the MIT License
         TL_DETAIL_CREATE_NAMED_ARG, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))))
 
 namespace tl::detail {
-    template <typename...>
     struct not_a_parameter
-    {};
-
-    template <typename... Fs>
-    struct overload : Fs...
-    {
-        using Fs::operator()...;
-    };
-
-    template <typename... Fs>
-    overload(Fs...)->overload<Fs...>;
+    { };
 
     // Functions marked always inline for better -O0 code-gen; don't have to
     // call N functions
@@ -178,12 +134,12 @@ namespace tl::detail {
         if constexpr (N < sizeof...(Ts)) {
             return tl::detail::nth_impl<N>(TL_FWD(ts)...);
         } else {
-            return not_a_parameter<>{};
+            return not_a_parameter {};
         }
     }
 
     template <int I, typename... Args>
-    extern not_a_parameter<> nth_ref;
+    extern not_a_parameter nth_ref;
 
     template <typename T0, typename... Args>
     extern T0 nth_ref<0, T0, Args...>;
