@@ -2,7 +2,7 @@
 
 Terse lambdas for C++. `[] TL(_1.name)` == `[] (auto&& it) { return it.name; }`
 
-[Try it online](https://godbolt.org/z/7YdxbWesa)
+[Try it online](https://godbolt.org/z/aP3nEYn6b)
 
 ## Why? C++ already has lambdas. Aren't they good enough?
 
