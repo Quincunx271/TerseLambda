@@ -6,8 +6,9 @@
 # DDS
 
 TerseLambda can be used by [DDS](https://github.com/vector-of-bool/dds).
-A pre-made DDS repo for TerseLambda can be found at https://github.com/Quincunx271/dds-repos;
-these steps assume you wish to use that repo:
+A pre-made DDS repo for TerseLambda can be found at https://github.com/Quincunx271/dds-repos.
+See [this example](/examples/dds) for a complete example.
+These steps assume you wish to use that repo:
 
   * Add the repo to DDS:
 

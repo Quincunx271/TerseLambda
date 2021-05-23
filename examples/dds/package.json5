@@ -1,0 +1,6 @@
+{
+    name: 'ExampleProject',
+    version: '0.0.0',
+    namespace: 'Example',
+    depends: ['terse-lambda@0.2.0']
+}
