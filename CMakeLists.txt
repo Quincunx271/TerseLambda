@@ -15,13 +15,7 @@ option(BUILD_TESTING "Build tests" ON)
 
 if(BUILD_TESTING)
   enable_testing()
-
-  # For Boost:
-  include(pmm.cmake)
-  pmm(CONAN)
 endif()
-
-find_package(Boost REQUIRED)
 
 # Target
 add_library(tl INTERFACE)
@@ -30,10 +24,6 @@ target_include_directories(tl
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-)
-target_link_libraries(tl
-  INTERFACE
-    Boost::boost
 )
 target_compile_features(tl
   INTERFACE

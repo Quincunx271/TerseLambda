@@ -1,7 +1,3 @@
-include(CMakeFindDependencyMacro)
-
-find_dependency(Boost 1.66.0 REQUIRED)
-
 if(NOT TARGET tl::tl)
   include("${CMAKE_CURRENT_LIST_DIR}/tl-targets.cmake")
 endif()
