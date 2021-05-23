@@ -31,7 +31,7 @@ int main()
         // Forwarding
         int a = 0;
         int const b = 0;
-        constexpr auto fn = [] TL(TL_FWD(_1));
+        constexpr auto fn = [] TLR(TL_FWD(_1));
         static_assert(std::is_same_v<decltype(fn(a)), int&>);
         static_assert(std::is_same_v<decltype(fn(std::move(a))), int&&>);
         static_assert(std::is_same_v<decltype(fn(b)), int const&>);
@@ -46,11 +46,13 @@ int main()
             int value;
         };
 
-        static_assert(overload {
-                          [] TL(_1.value + _2.value),
-                          [](auto&&...) { return -10; },
-                      }(foo {42}, foo {2})
-            == 44);
+        {
+            auto l = overload {
+                [] TL(_1.value + _2.value),
+                [](auto&&...) { return -10; },
+            };
+            static_assert(l(foo {42}, foo {2}) == 44);
+        }
 
         static_assert(overload {
                           [] TL(_1.value + _2.thing),
@@ -77,20 +79,37 @@ int main()
                 return true;
             }
         };
-        static_assert(noexcept([] TL(_1.yes())(bar {})));
-        static_assert(!noexcept([] TL(_1.no())(bar {})));
-        static_assert(noexcept([] TL((_args.yes() && ...))(bar {})));
-        static_assert(!noexcept([] TL((_args.no() && ...))(bar {})));
-        static_assert(noexcept([] TL((_args.no() && ...))()));
-        static_assert(!noexcept([] TL((_args.yes() && ...))(bar {}, baz {})));
+        {
+            auto l = [] TL(_1.yes());
+            static_assert(noexcept(l(bar {})));
+        }
+        {
+            auto l = [] TL(_1.no());
+            static_assert(!noexcept(l(bar {})));
+        }
+        {
+            auto l = [] TL((_args.yes() && ...));
+            static_assert(noexcept(l(bar {})));
+        }
+        {
+            auto l = [] TL((_args.no() && ...));
+            static_assert(!noexcept(l(bar {})));
+        }
+        {
+            auto l = [] TL((_args.no() && ...));
+            static_assert(noexcept(l()));
+        }
+        {
+            auto l = [] TL((_args.yes() && ...));
+            static_assert(!noexcept(l(bar {}, baz {})));
+        }
     }
 
     // TLV
     {
         // non-capturing
         auto sum = [] TL((_args + ...));
-        assert(sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-                   18, 19, 20)
+        assert(sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
             == 20 * (20 + 1) / 2);
 
         static_assert(noexcept(sum(1, 2, 3)));
