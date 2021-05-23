@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     strategy:
+      fail-fast: false
       matrix:
         cxx: [g++-10, g++-11, clang++-10, clang++-11, clang++-12]
         std: [20]
@@ -19,14 +20,18 @@ jobs:
     steps:
     - name: Get Dependencies
       run: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+        if ! command -v ${{ matrix.cxx }} &> /dev/null ; then
+          if [[ "${{matrix.cxx}}" == "g++"* ]]; then
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          else
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+          fi
 
-        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
-        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
-        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
-
-        sudo apt-get update
-        sudo apt-get install ${{ matrix.cxx }}
+          sudo apt-get update
+          sudo apt-get install ${{ matrix.cxx }}
+        fi
 
     - name: Print Configuration
       run: |
