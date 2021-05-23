@@ -57,7 +57,6 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    continue-on-error: true # MSVC currently ICEs
 
     strategy:
       matrix:
@@ -78,16 +77,18 @@ jobs:
             -DCMAKE_CXX_FLAGS_INIT="/permissive- /W4 /WX"
 
     - name: Build
+      id: build
       working-directory: ${{ runner.workspace }}/build
       run: ls && cmake --build . --config ${{ matrix.build_type }} -j3
+      continue-on-error: true # MSVC currently ICEs
 
     - name: Run Tests
       working-directory: ${{ runner.workspace }}/build
       run: ctest -C ${{ matrix.build_type }} -VV
+      continue-on-error: ${{ steps.build.outcome != 'success' }}
 
   build-macos:
     runs-on: macos-latest
-    continue-on-error: true # Latest AppleClang version appears to be too old.
 
     strategy:
       matrix:
@@ -108,9 +109,12 @@ jobs:
             -DCMAKE_CXX_FLAGS_INIT="-Wall -Wextra -Werror"
 
     - name: Build
+      id: build
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --config ${{ matrix.build_type }} -j3
+      continue-on-error: true # Latest AppleClang version appears to be too old.
 
     - name: Run Tests
       working-directory: ${{ runner.workspace }}/build
       run: ctest -C ${{ matrix.build_type }} -VV
+      continue-on-error: ${{ steps.build.outcome != 'success' }}
