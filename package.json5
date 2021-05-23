@@ -1,0 +1,5 @@
+{
+    name: 'terse-lambda',
+    version: '0.2.0',
+    namespace: 'quincunx271',
+}

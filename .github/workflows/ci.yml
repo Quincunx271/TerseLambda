@@ -118,3 +118,31 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: ctest -C ${{ matrix.build_type }} -VV
       continue-on-error: ${{ steps.build.outcome != 'success' }}
+
+  build-dds:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        toolchain: [gcc-10.tc.json5]
+
+    steps:
+    - name: Install Dependencies
+      run: |
+        mkdir -p ${{ runner.workspace }}/bin && cd ${{ runner.workspace }}/bin
+        wget -nv https://github.com/vector-of-bool/dds/releases/download/0.1.0-alpha.6/dds-linux-x64
+        chmod +x dds-linux-x64
+        ln -s $PWD/dds-linux-x64 dds
+    - name: Print Configuration
+      run: |
+        echo ${{ matrix.toolchain }}
+        ${{ runner.workspace }}/bin/dds --help
+    - uses: actions/checkout@v2
+      with:
+        path: src
+
+    - name: Build
+      run: |
+        cd src
+        sed -Ei "s/(warning_flags:.*)'/\1 -Werror'/g" tools/${{ matrix.toolchain }}
+        ${{ runner.workspace }}/bin/dds build -t tools/${{ matrix.toolchain }}

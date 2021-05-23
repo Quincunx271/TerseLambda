@@ -1,0 +1,12 @@
+{
+    compiler_id: 'gnu',
+    c_compiler: 'gcc-10',
+    cxx_compiler: 'g++-10',
+    cxx_version: 'c++20',
+
+    flags: '-fsanitize=address -fPIC',
+    link_flags: '-fsanitize=address',
+
+    warning_flags: '',
+    debug: 'split',
+}
