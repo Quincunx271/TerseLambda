@@ -1,22 +1,13 @@
 /*
-Copyright Justin Bassett 2018
+Copyright Justin Bassett 2018-2021
 Distributed under the MIT License
 (See the accompanying LICENSE file or https://opensource.org/licenses/MIT)
 */
 
 #pragma once
 
-#include <boost/preprocessor/arithmetic/inc.hpp>
-#include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/control/if.hpp>
-#include <boost/preprocessor/repetition/enum_shifted_params.hpp>
-#include <boost/preprocessor/seq/enum.hpp>
-#include <boost/preprocessor/seq/transform.hpp>
-#include <boost/preprocessor/variadic/to_seq.hpp>
-
 // Implementations must ignore attributes if they don't do anything with them.
-// Unfortunately, MSVC doesn't obey this rule, and MSVC's __forceinline is not
-// an attribute.
+// Unfortunately, implementations still emit warnings, and MSVC's __forceinline is not an attribute.
 #ifdef _MSC_VER
 #define TL_ALWAYS_INLINE __forceinline
 #else
@@ -28,87 +19,71 @@ Distributed under the MIT License
 
 #define TL_FWD(...) static_cast<decltype(__VA_ARGS__)&&>(__VA_ARGS__)
 
-#define TL_RET(...)                                                            \
-    noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)                     \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
-    }
-
 // Creates a terse lambda with the given expression.
 // [] TL(_1.do_something())
-// @note Not `noexcept`-friendly or sfinae-friendly. Use TLV or TLG if those
-// attributes are necessary
-#define TL(...)                                                                \
-    (auto&&... _args)->decltype(auto)                                          \
-    {                                                                          \
-        [[maybe_unused]] auto&& _1 = ::tl::detail::nth<0>(TL_FWD(_args)...);   \
-        [[maybe_unused]] auto&& _2 = ::tl::detail::nth<1>(TL_FWD(_args)...);   \
-        [[maybe_unused]] auto&& _3 = ::tl::detail::nth<2>(TL_FWD(_args)...);   \
-        [[maybe_unused]] auto&& _4 = ::tl::detail::nth<3>(TL_FWD(_args)...);   \
-                                                                               \
-        return __VA_ARGS__;                                                    \
+// This returns by value, like the default lambda without `-> decltype(auto)`.
+// Use this unless you know your type isn't cheap to copy and the expression yields a reference.
+#define TL(...) TLR(::tl_detail::copy(__VA_ARGS__))
+
+// Creates a decltype(auto) terse lambda with the given expression.
+// [] TLR(_1.do_something())
+// Use this to avoid a copy if your expression returns a reference.
+#define TLR(...)                                                                                   \
+    <typename... TL_DETAIL_ID(TlArgs)>(TL_DETAIL_ID(TlArgs) && ... _args) noexcept(                \
+        TL_DETAIL_REQUIRES(noexcept, __VA_ARGS__))                                                 \
+        ->decltype(auto) requires TL_DETAIL_REQUIRES(, __VA_ARGS__)                                \
+    {                                                                                              \
+        [[maybe_unused]] auto&& _1 = ::tl_detail::nth<0>(TL_FWD(_args)...);                        \
+        [[maybe_unused]] auto&& _2 = ::tl_detail::nth<1>(TL_FWD(_args)...);                        \
+        [[maybe_unused]] auto&& _3 = ::tl_detail::nth<2>(TL_FWD(_args)...);                        \
+        [[maybe_unused]] auto&& _4 = ::tl_detail::nth<3>(TL_FWD(_args)...);                        \
+                                                                                                   \
+        return __VA_ARGS__;                                                                        \
     }
 
-// Creates a variadic-only terse lambda.
-// [] TLV(call_something(_args...))
-// @note `noexcept`-friendly and sfinae-friendly.
-#define TLV(...)                                                               \
-    (auto&&... _args) noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)   \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
+#define TL_DETAIL_REQUIRES(NOEXCEPT, ...)                                                          \
+    requires(decltype(::tl_detail::nth<0>(TL_FWD(_args)...)) _1,                                   \
+        decltype(::tl_detail::nth<1>(TL_FWD(_args)...)) _2,                                        \
+        decltype(::tl_detail::nth<2>(TL_FWD(_args)...)) _3,                                        \
+        decltype(::tl_detail::nth<3>(TL_FWD(_args)...)) _4)                                        \
+    {                                                                                              \
+        {__VA_ARGS__} NOEXCEPT;                                                                    \
     }
 
-// Dev: Produces a Boost.PP sequence from 1 to N inclusive: (1)(2)(...)(N)
-#define TL_DETAIL_NUM_SEQ(N)                                                   \
-    BOOST_PP_VARIADIC_TO_SEQ(BOOST_PP_ENUM_SHIFTED_PARAMS(BOOST_PP_INC(N), ))
+#define TL_DETAIL_ID(x) TL_DETAIL_CAT(x, __LINE__)
+#define TL_DETAIL_CAT(a, b) TL_DETAIL_CAT2(a, b)
+#define TL_DETAIL_CAT2(a, b) a##b
 
-// Dev: creates `[[maybe_unused]] auto&&` function parameters.
-// [](
-//     [[maybe_unused]] auto&& _1,
-//     [[maybe_unused]] auto&& _2,
-//     ...
-// )
-#define TL_DETAIL_CREATE_ARG_N(s, data, elem)                                  \
-    [[maybe_unused]] auto&& BOOST_PP_CAT(_, elem)
-
-#define TL_DETAIL_CREATE_ARGS(N)                                               \
-    BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(                                  \
-        TL_DETAIL_CREATE_ARG_N, , TL_DETAIL_NUM_SEQ(N)))
-
-// Creates a generic terse lambda
-// [] TLG(1, _1.do_something())
-// @argument1 The number of parameters on the lambda. Must be a preprocessor
-// number (either a #define or a literal)
-// @note `noexcept`-friendly and sfinae-friendly.
-// @note Not variadic.
-#define TLG(N, ...)                                                            \
-    BOOST_PP_IF(N, (TL_DETAIL_CREATE_ARGS(N)), ())                             \
-    noexcept(noexcept(__VA_ARGS__))->decltype(__VA_ARGS__)                     \
-    {                                                                          \
-        return __VA_ARGS__;                                                    \
+namespace tl_detail {
+    template <typename T>
+    constexpr auto decay_fn(T&& t) noexcept
+    {
+        return TL_FWD(t);
     }
 
-#define TL_DETAIL_CREATE_NAMED_ARG(s, data, elem) auto&& elem
+    template <typename T>
+    extern T declval() noexcept;
 
-// Creates a terse lambda with argument names
-// [] TLN(a, b) { return a + b; }
-// [] TLN(a, b) TL_RET(a + b);
-// The most versatile of all terse lambdas.
-// @note As `noexcept`-friendly and sfinae-friendly as you write it
-#define TLN(...)                                                               \
-    (BOOST_PP_SEQ_ENUM(BOOST_PP_SEQ_TRANSFORM(                                 \
-        TL_DETAIL_CREATE_NAMED_ARG, , BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))))
+    template <typename T>
+    using decay_t = decltype(tl_detail::decay_fn(tl_detail::declval<T>()));
 
-namespace tl::detail {
+    template <typename T>
+    constexpr bool is_noexcept_constructible_v = noexcept(decay_t<T>(tl_detail::declval<T>()));
+
     struct not_a_parameter
-    {};
+    { };
 
     // Functions marked always inline for better -O0 code-gen; don't have to
     // call N functions
 
-    // Dev: these functions don't need to be sfinae or noexcept friendly;
-    // they're only called by the macro which is not sfinae or noexcept
-    // friendly.
+    template <typename T>
+    TL_ALWAYS_INLINE constexpr auto copy(T&& t) noexcept(is_noexcept_constructible_v<T&&>)
+    {
+        return TL_FWD(t);
+    }
+
+    // Note: these functions don't need to be sfinae or noexcept friendly;
+    // they're only used in contexts where it won't affect anything.
 
     template <int N, typename T, typename... Ts>
     TL_ALWAYS_INLINE constexpr decltype(auto) nth_impl(T&& t, Ts&&... ts)
@@ -116,7 +91,7 @@ namespace tl::detail {
         if constexpr (N == 0) {
             return TL_FWD(t);
         } else {
-            return tl::detail::nth_impl<N - 1>(TL_FWD(ts)...);
+            return tl_detail::nth_impl<N - 1>(TL_FWD(ts)...);
         }
     }
 
@@ -124,9 +99,9 @@ namespace tl::detail {
     TL_ALWAYS_INLINE constexpr decltype(auto) nth(Ts&&... ts)
     {
         if constexpr (N < sizeof...(Ts)) {
-            return tl::detail::nth_impl<N>(TL_FWD(ts)...);
+            return tl_detail::nth_impl<N>(TL_FWD(ts)...);
         } else {
-            return not_a_parameter{};
+            return not_a_parameter {};
         }
     }
 }
