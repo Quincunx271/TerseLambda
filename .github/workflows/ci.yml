@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        cxx: [g++-10, g++-11, clang++-10, clang++-11, clang++-12]
+        std: [20]
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Get Dependencies
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+
+        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
+        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+        sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+
+        sudo apt-get update
+        sudo apt-get install ${{ matrix.cxx }}
+
+    - name: Print Configuration
+      run: |
+        ${{ matrix.cxx }} --version
+        echo std=c++${{ matrix.std }}
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S. -B${{ runner.workspace }}/build
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+            -DCMAKE_CXX_FLAGS_INIT="-Wall -Wextra -Werror"
+
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --config ${{ matrix.build_type }} -j3
+
+    - name: Run Tests
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -C ${{ matrix.build_type }} -VV
+
+  build-windows:
+    runs-on: windows-latest
+    continue-on-error: true # MSVC currently ICEs
+
+    strategy:
+      matrix:
+        std: [20]
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Print Configuration
+      run: |
+        echo std=c++${{ matrix.std }}
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S. -B${{ runner.workspace }}/build
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+            -DCMAKE_CXX_FLAGS_INIT="/permissive- /W4 /WX"
+
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: ls && cmake --build . --config ${{ matrix.build_type }} -j3
+
+    - name: Run Tests
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -C ${{ matrix.build_type }} -VV
+
+  build-macos:
+    runs-on: macos-latest
+    continue-on-error: true # Latest AppleClang version appears to be too old.
+
+    strategy:
+      matrix:
+        std: [20]
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Print Configuration
+      run: |
+        echo std=c++${{ matrix.std }}
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S. -B${{ runner.workspace }}/build
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+            -DCMAKE_CXX_FLAGS_INIT="-Wall -Wextra -Werror"
+
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --config ${{ matrix.build_type }} -j3
+
+    - name: Run Tests
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -C ${{ matrix.build_type }} -VV
