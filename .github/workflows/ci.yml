@@ -199,3 +199,38 @@ jobs:
 
     - name: Test
       run: ctest -VV --test-dir ${{ runner.workspace }}/build
+
+  example-cmake-findpackage:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        cxx: [g++-10]
+
+    steps:
+    - name: Print Configuration
+      run: |
+        ${{ matrix.cxx }} --version
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure TerseLambda
+      run: cmake -S. -B${{ runner.workspace }}/build-library
+            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_INSTALL_PREFIX=$PWD/install
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+
+    - name: Build TerseLambda
+      run: cmake --build ${{ runner.workspace }}/build-library --target install
+
+    - name: Configure Example
+      run: cmake -Sexamples/cmake-findpackage -B${{ runner.workspace }}/build-example
+            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_INSTALL_PREFIX=$PWD/install
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+
+    - name: Build Example
+      run: cmake --build ${{ runner.workspace }}/build-example
+
+    - name: Test Example
+      run: ctest -VV --test-dir ${{ runner.workspace }}/build-example
