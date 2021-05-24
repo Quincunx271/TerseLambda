@@ -1,3 +1,4 @@
 {
+    name: 'example',
     uses: ['quincunx271/terse-lambda']
 }
