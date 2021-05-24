@@ -1,6 +1,7 @@
 # Supported Package Managers
 
  * [DDS][dds]
+ * [CMake Usage][cmake]
 
 
 # DDS
@@ -29,4 +30,15 @@ These steps assume you wish to use that repo:
       ]
     ```
 
+# CMake
+
+CMake isn't a package manager, but TerseLambda can be consumed via the standard ways of
+using CMake packages. That is, you can use TerseLambda via `add_subdirectory(...)` and also
+via `find_package(tl ${VERSION} REQUIRED)`.
+
+See [the FetchContent example](/examples/cmake-fetchcontent) and [the find_package example](/examples/cmake-findpackage)
+for complete examples.
+
+
   [dds]: #dds
+  [cmake]: #cmake
