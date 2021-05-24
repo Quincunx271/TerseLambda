@@ -147,7 +147,7 @@ jobs:
         sed -Ei "s/(warning_flags:.*)'/\1 -Werror'/g" tools/${{ matrix.toolchain }}
         ${{ runner.workspace }}/bin/dds build -t tools/${{ matrix.toolchain }}
 
-  build-dds-example:
+  example-dds:
     runs-on: ubuntu-20.04
 
     strategy:
@@ -174,3 +174,28 @@ jobs:
         cd src
         sed -Ei "s/(warning_flags:.*)'/\1 -Werror'/g" tools/${{ matrix.toolchain }}
         ${{ runner.workspace }}/bin/dds build -t tools/${{ matrix.toolchain }} -p examples/dds --add-repo="https://quincunx271.github.io/dds-repos/public"
+
+  example-cmake-fetchcontent:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        cxx: [g++-10]
+
+    steps:
+    - name: Print Configuration
+      run: |
+        ${{ matrix.cxx }} --version
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -Sexamples/cmake-fetchcontent -B${{ runner.workspace }}/build
+            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+
+    - name: Build
+      run: cmake --build ${{ runner.workspace }}/build
+
+    - name: Test
+      run: ctest -VV --test-dir ${{ runner.workspace }}/build
