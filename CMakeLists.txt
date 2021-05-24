@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(terse-lambda
-  VERSION 0.2.0
+  VERSION 1.0.0
   LANGUAGES CXX
   DESCRIPTION "Terse lambdas for C++"
 )
@@ -63,7 +63,7 @@ set(CMAKE_SIZEOF_VOID_P)
 write_basic_package_version_file(
   "${CMAKE_CURRENT_BINARY_DIR}/tlConfigVersion.cmake"
   VERSION "${PROJECT_VERSION}"
-  COMPATIBILITY SameMinorVersion
+  COMPATIBILITY SameMajorVersion
 )
 
 configure_package_config_file(

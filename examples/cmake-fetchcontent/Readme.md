@@ -10,7 +10,7 @@ include(FetchContent)
 FetchContent_Declare(
   TerseLambda
   GIT_REPOSITORY https://github.com/Quincunx271/TerseLambda.git
-  GIT_TAG v0.2.0
+  GIT_TAG v1.0.0-alpha.1
 )
 FetchContent_MakeAvailable(TerseLambda)
 

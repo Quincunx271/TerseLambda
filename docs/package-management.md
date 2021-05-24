@@ -22,7 +22,7 @@ These steps assume you wish to use that repo:
     ```json5
       // In your package.json5
       depends: [
-        'terse-lambda@0.2.0'
+        'terse-lambda@1.0.0-alpha.1'
       ]
       // In your library.json5
       uses: [

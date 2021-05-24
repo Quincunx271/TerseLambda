@@ -5,7 +5,7 @@ project(Example
   DESCRIPTION "Example project for using TerseLambda via FetchContent"
 )
 
-set(TERSE_LAMBDA_VERSION 0.2.0 CACHE STRING "The commit/branch/tag to use")
+set(TERSE_LAMBDA_VERSION 1.0.0 CACHE STRING "The commit/branch/tag to use")
 
 find_package(tl ${TERSE_LAMBDA_VERSION} REQUIRED)
 

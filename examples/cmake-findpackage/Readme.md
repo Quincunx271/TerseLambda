@@ -6,7 +6,7 @@ See [the package management documentation](/docs/package-management.md#cmake).
 To use TerseLambda, you can use the following:
 
 ```cmake
-find_package(tl 0.2.0 REQUIRED)
+find_package(tl 1.0.0 REQUIRED)
 
 # Later, when you define a target that depends on TerseLambda:
 target_link_libraries(myTarget
