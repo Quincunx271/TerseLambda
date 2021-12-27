@@ -23,7 +23,7 @@ Distributed under the MIT License
 // [] TL(_1.do_something())
 // This returns by value, like the default lambda without `-> decltype(auto)`.
 // Use this unless you know your type isn't cheap to copy and the expression yields a reference.
-#define TL(...) TLR(::tl_detail::copy(__VA_ARGS__))
+#define TL(...) TLR(auto(__VA_ARGS__))
 
 // Creates a decltype(auto) terse lambda with the given expression.
 // [] TLR(_1.do_something())
@@ -55,32 +55,11 @@ Distributed under the MIT License
 #define TL_DETAIL_CAT2(a, b) a##b
 
 namespace tl_detail {
-    template <typename T>
-    constexpr auto decay_fn(T&& t) noexcept
-    {
-        return TL_FWD(t);
-    }
-
-    template <typename T>
-    extern T declval() noexcept;
-
-    template <typename T>
-    using decay_t = decltype(tl_detail::decay_fn(tl_detail::declval<T>()));
-
-    template <typename T>
-    constexpr bool is_noexcept_constructible_v = noexcept(decay_t<T>(tl_detail::declval<T>()));
-
     struct not_a_parameter
     { };
 
     // Functions marked always inline for better -O0 code-gen; don't have to
     // call N functions
-
-    template <typename T>
-    TL_ALWAYS_INLINE constexpr auto copy(T&& t) noexcept(is_noexcept_constructible_v<T&&>)
-    {
-        return TL_FWD(t);
-    }
 
     // Note: these functions don't need to be sfinae or noexcept friendly;
     // they're only used in contexts where it won't affect anything.
