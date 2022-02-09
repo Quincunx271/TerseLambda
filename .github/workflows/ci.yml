@@ -112,12 +112,10 @@ jobs:
       id: build
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --config ${{ matrix.build_type }} -j3
-      continue-on-error: true # Latest AppleClang version appears to be too old.
 
     - name: Run Tests
       working-directory: ${{ runner.workspace }}/build
       run: ctest -C ${{ matrix.build_type }} -VV
-      continue-on-error: ${{ steps.build.outcome != 'success' }}
 
   build-dds:
     runs-on: ubuntu-20.04
