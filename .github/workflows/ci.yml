@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cxx: [g++-10, g++-11, clang++-10, clang++-11, clang++-12]
+        cxx: [g++-10, g++-11, clang++-10, clang++-11, clang++-12, clang++-13, clang++-14]
         std: [20]
         build_type: [Debug, Release]
 
@@ -28,6 +28,8 @@ jobs:
             sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
             sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
             sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
           fi
 
           sudo apt-get update
