@@ -30,7 +30,13 @@ Distributed under the MIT License
 // Use this to avoid a copy if your expression returns a reference.
 #define TLR(...)                                                                                   \
     <typename... TL_DETAIL_ID(TlArgs)>(TL_DETAIL_ID(TlArgs) && ... _args) noexcept(                \
-        TL_DETAIL_REQUIRES(noexcept, __VA_ARGS__))                                                 \
+        decltype([](TL_DETAIL_ID(TlArgs) && ... _args) {                                           \
+            [[maybe_unused]] auto&& _1 = ::tl_detail::nth<0>(TL_FWD(_args)...);                    \
+            [[maybe_unused]] auto&& _2 = ::tl_detail::nth<1>(TL_FWD(_args)...);                    \
+            [[maybe_unused]] auto&& _3 = ::tl_detail::nth<2>(TL_FWD(_args)...);                    \
+            [[maybe_unused]] auto&& _4 = ::tl_detail::nth<3>(TL_FWD(_args)...);                    \
+            return ::tl_detail::bool_t<noexcept(__VA_ARGS__)> {};                                  \
+        }(TL_FWD(_args)...))::value)                                                               \
         ->decltype(auto) requires TL_DETAIL_REQUIRES(, __VA_ARGS__)                                \
     {                                                                                              \
         [[maybe_unused]] auto&& _1 = ::tl_detail::nth<0>(TL_FWD(_args)...);                        \
@@ -60,6 +66,12 @@ namespace tl_detail {
     {
         return TL_FWD(t);
     }
+
+    template <bool B>
+    struct bool_t
+    {
+        static constexpr bool value = B;
+    };
 
     template <typename T>
     extern T declval() noexcept;
