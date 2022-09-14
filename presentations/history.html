@@ -1,0 +1,398 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/black.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css">
+	</head>
+	<body>
+		<!-- TODO: reference the reddit post to see if I can get a bit more insight into my design process -->
+		<div class="reveal">
+			<div class="slides">
+				<section data-markdown>
+					<textarea data-template>
+					# Terse Lambdas:
+					## Extending C++ using macros (for fun ~~and profit~~)
+
+					Justin Bassett
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					## Overview
+
+					- Why use macros? / Motivation
+					- Design principles
+					- Inventing a macro
+					- Difficulties
+					- Takeaway
+					</textarea>
+				</section>
+				<section>
+					<h1>Why use macros?</h1>
+					<p>Missing features, verbosity, polyfills
+
+					<section data-markdown>
+						<textarea data-template>
+							`FWD(...)`
+							```c++
+							std::forward<decltype(args)>(args)
+							std::forward<T>(t)
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							`FWD(...)`
+							```c++
+							FWD(args)
+							FWD(t)
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							`TRY_ASSIGN(var, ...)`
+							```c++
+							std::expected&lt;T, E&gt; value = f();
+							if (!value.has_value()) {
+							  return std::unexpected(std::move(value).error());
+							}
+							g(*value);
+							```
+						</textarea>
+					</section>
+					<section data-markdown>
+						<textarea data-template>
+							`TRY_ASSIGN(var, ...)`
+							```c++
+							TRY_ASSIGN(T value, f());
+							g(value);
+							```
+						</textarea>
+					</section>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						#define FWD(...)                       ⧵
+						  ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
+						#define TRY_ASSIGN(var, ...)           ⧵
+						  auto expected = (__VA_ARGS__);       \
+						  if (!expected.has_value()) {         \
+						   return ::std::unexpected(           \
+						     ::std::move(expected).error());   \
+						  }                                    \
+						  var = ::std::move(expected).value()
+						```
+
+						Note: If you're curious, these are what those macro definitions might look like.
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+					This is a story of writing such a macro to hack terse lambdas into the language.
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					## Macro design principles
+
+					1. Don't use a macro.
+					2. Don't use a macro.
+					3. Don't do anything too "cute". E.g. namespace pollution: `#define _1`, `#define arg(...)`.
+					4. Try to make the macro fit into the language.
+					5. Don't do anything too complicated.
+					6. Be flexible with syntax.
+
+					Note: There are some principles to macro design that can make them more well behaved.
+					1. Don't use a macro. If it's possible, regular functions are templates are better. Magic macros change the syntax of C++, making it harder for someone to come into your code and understand what's going on. It really has to be worth it to go for it.
+					2. No seriously, don't use a macro.
+					3. Don't do anything too cute. For example, don't pollute the global namespace.
+					4. Make the macro feel like it fits into the language. If it looks like a function call but can do something completely different, that can increase the learning curve of the macro.
+					5. Don't do anything too complicated. Doing fancy stuff with Boost.PP can be a lot of fun, but it can also be incomprehensible. I think it's usually worth questioning whether it's worth it when doing that.
+					6. Be flexible with syntax. Making some compromises is necessary, because you have to make it work with the language.
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					## _Now I Am Become Perl_
+
+					Colby Pike, a.k.a. vector-of-bool, wrote the blog post [_Now I Am Become Perl_](https://vector-of-bool.github.io/2018/10/31/become-perl.html) in 2018.
+
+					Note: Colby Pike, also known as vector-of-bool, wrote _Now I Am Become Perl_ in 2018. In this blog post, Pike argues for terse lambdas, pointing out that they can help readability in some cases.
+					</textarea>
+				</section>
+
+				<section>
+<h2>Why Terse Lambdas?</h2>
+
+<pre><code>std::ranges::sort(strings,
+  [](const std::string& lhs, const std::string& rhs) {
+    return lhs.size() < rhs.size();
+  });
+</code></pre>
+
+<ul>
+ <li class="fragment"><code>std::ranges::sort(strings,</code>
+ <li class="fragment"><code>[](const std::string& lhs, const std::string& rhs) {</code>
+ <li class="fragment"><code>return lhs.size() < rhs.size();</code>
+ <li class="fragment">Piece everything together
+</ul>
+
+<aside class="notes">
+With regular C++ lambdas, the syntax gets in the way of understanding the code. Especially for even more complicated examples, the extra syntax requires pushing to my mental stack. For example,
+ (next)
+ std::ranges::sort(strings, - Okay, so we're sorting some strings.
+ (next)
+ Okay, so we have a lambda. Do these parameter types make sense for operating over a range of strings? Yes, taking by const reference makes sense here.
+ (next)
+ return lhs.size() < rhs.size(). Okay, so we're comparing strings by size.
+ (next)
+ Where were we again? Oh yeah, we're sorting. So we're sorting these strings by size.
+</aside>
+				</section>
+
+				<section>
+<h2>Why Terse Lambdas?</h2>
+
+<pre><code>std::ranges::sort(strings, [][&1.size() < &2.size()]);
+</code></pre>
+
+<aside class="notes">
+	Compare that to if we had some magic lambda syntax. Here, the syntax for the terse lambda is terse enough that I can immediately parse the lambda as comparing by .size(), which means I don't have to do some mental stack pushing.
+	Now obviously, this isn't valid C++. But what if we could make something like this work with a macro....
+    Well the ampersands aren't valid C++, but if I replace them with an underscore, that could be a function parameter.
+</aside>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+					## Hey! Maybe....
+
+					```c++
+					std::ranges::sort(strings, TerseLambda(_1.size() < _2.size()));
+					```
+
+					Note: If we squint, this looks kind of the same as Pike's imaginary magic macro syntax. What if we could make something like this work?'
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					## Let's make this look and feel more like a lambda
+
+					```c++
+					TerseLambda(_1.size() < _2.size())
+					```
+
+					Note: Maybe such a syntax would work, but it doesn't really feel like a lambda. It's more like some strange kind of function call. What's the one thing that sets lambdas apart when we read C++ code? The capture list.'
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					```c++
+					[] TerseLambda(_1.size() < _2.size())
+					```
+
+					Note: That looks a lot more like a lambda. Although it's really not that terse....'
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+					```c++
+					[] TL(_1.size() < _2.size())
+					```
+
+					Note: It might seem silly, but if the whole purpose of this is to shrink the lambda so it's easy to quickly parse, we should really stick to that purpose'.
+					</textarea>
+				</section>
+
+				<section>
+<h2>How can we do this?</h2>
+
+<pre><code> [] (auto _1, auto _2, auto _3) {
+</code></pre>
+
+<pre class="fragment"><code>overload {
+  [] (auto _1) { ... },
+  [] (auto _1, auto _2) { ... },
+  [] (auto _1, auto _2, auto _3) { ... },
+}
+</code></pre>
+
+<pre class="fragment"><code>[] (auto... _args) {
+  // Magically create _1, _2, _3, etc.
+}
+</code></pre>
+
+<aside class="notes">
+Note: We want to be able to have parameters as _1, _2, and so on. But how can we know the right number of parameters to produce? We don't want to force the lambda to have a specific number of arguments.
+(next) Perhaps we could overload a bunch of lambdas.... That's horrible, and it would also prevent us from having the prefixed capture list that we want..
+(next) Okay, so what if we made it a variable number of arguments and magically create the different parameter names as variables.
+</aside>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						#define TL(...)           ⧵
+						  (auto... _args) {       \
+						    return (__VA_ARGS__); \
+						  }
+						```
+						```c++
+						[] TL(_1.size() < _2.size())
+						// Becomes
+						[] (auto... _args) {
+						  return (_1.size() < _2.size());
+						}
+						```
+					</textarea>
+				</section>
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						#define TL(...)                           ⧵
+						  (auto... _args) {                       \
+						    auto _1 = nth_parameter<0>(_args...); \
+						    auto _2 = nth_parameter<1>(_args...); \
+						    return (__VA_ARGS__);                 \
+						  }
+						```
+						```c++
+						[] TL(_1.size() < _2.size())
+						// Becomes
+						[] (auto... _args) {
+						  auto _1 = nth_parameter<0>(_args...);
+						  auto _2 = nth_parameter<1>(_args...);
+						  return (_1.size() < _2.size());
+						}
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						#define TL(...)                           ⧵
+						  (auto... _args) {                       \
+						    auto _1 = nth_parameter<0>(_args...); \
+						    auto _2 = nth_parameter<1>(_args...); \
+						    return (__VA_ARGS__);                 \
+						  }
+						```
+						```c++
+						[] TL(... + _args)
+						// Becomes
+						[] (auto... _args) {
+						  auto _1 = nth_parameter<0>(_args...);
+						  auto _2 = nth_parameter<1>(_args...);
+						  return (... + _args);
+						}
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						#define TL(...)                           ⧵
+						  (auto... _args) {                       \
+						    auto _1 = nth_parameter<0>(_args...); \
+						    auto _2 = nth_parameter<1>(_args...); \
+						    return (__VA_ARGS__);                 \
+						  }
+						```
+						```c++
+						std::ranges::find(strings, [] TL(_1.size() < 4))
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						struct not_a_parameter {}; // Thinking about error messages...
+
+						template <int N, typename... Ts>
+						decltype(auto) nth_parameter(Ts&&... args) {
+						  if constexpr (N >= sizeof...(Ts)) {
+						    return not_a_parameter{};
+						  } else {
+						    return nth_parameter_impl<N>(FWD(args)...);
+						  }
+						}
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+						```c++
+						template <int N, typename T, typename... Ts>
+						decltype(auto) nth_parameter_impl(T&& arg, Ts&&... rest) {
+						  if constexpr (N == 0) {
+						    return FWD(arg);
+						  } else {
+						    return nth_parameter_impl<N - 1>(FWD(rest)...);
+						  }
+						}
+						```
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+					## It works!
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+					## Additional features and problems
+
+					- Return by value or by reference? If `-> decltype(auto)` and we use `return (__VA_ARGS__)`, what does `[] TL(true)` return?
+					- `noexcept` friendly?
+					- `SFINAE` friendly?
+					- How many parameters do we support?
+					</textarea>
+				</section>
+
+				<section data-markdown>
+					<textarea data-template>
+					## The project
+
+					https://github.com/Quincunx271/TerseLambda
+					</textarea>
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
+			});
+		</script>
+	</body>
+</html>
