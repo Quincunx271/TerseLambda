@@ -175,6 +175,7 @@ jobs:
         cd src
         sed -Ei "s/(warning_flags:.*)'/\1 -Werror'/g" tools/${{ matrix.toolchain }}
         ${{ runner.workspace }}/bin/dds build -t tools/${{ matrix.toolchain }} -p examples/dds --add-repo="https://quincunx271.github.io/dds-repos/public"
+      continue-on-error: true # TODO(#11): migrate from DDS to BPT (BPT is the new name).
 
   example-cmake-fetchcontent:
     runs-on: ubuntu-20.04
