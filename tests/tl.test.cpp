@@ -47,16 +47,34 @@ int main()
         assert([] TL(_2)(3, 4) == 4);
 
         // Specific types expected
-        static_assert(std::is_same_v<decltype([] TLR(42)()), int>);
+        {
+            constexpr auto fn = [] TLR(42);
+        static_assert(std::is_same_v<decltype(fn()), int>);
+        }
         struct member_type_access {
             std::string str;
             const std::string& str_ref;
         };
-        static_assert(std::is_same_v<decltype([] TLR(TL_FWD(_1).str)(std::declval<member_type_access&&>())), std::string&&>);
-        static_assert(std::is_same_v<decltype([] TLR(_1.str)(std::declval<const member_type_access&>())), const std::string&>);
-        static_assert(std::is_same_v<decltype([] TLR(_1.str_ref)(std::declval<member_type_access>())), const std::string&>);
-        static_assert(std::is_same_v<decltype([] TL(TL_FWD(_1).str)(std::declval<member_type_access&&>())), std::string>); // If we _really_ want the by-value behavior, ask for it.
-        static_assert(std::is_same_v<decltype([] TL(_1.str)(std::declval<const member_type_access&>())), std::string>); // If we _really_ want the by-value behavior, ask for it.
+        {
+            constexpr auto fn = [] TLR(TL_FWD(_1).str);
+            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&&>);
+        }
+        {
+            constexpr auto fn = [] TLR(_1.str);
+            static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
+        }
+        {
+            constexpr auto fn = [] TLR(_1.str_ref);
+            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access>())), const std::string&>);
+        }
+        {
+            constexpr auto fn = [] TL(TL_FWD(_1).str); // If we _really_ want the by-value behavior, ask for it.
+            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string>);
+        }
+        {
+            constexpr auto fn = [] TL(_1.str); // If we _really_ want the by-value behavior, ask for it.
+            static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), std::string>);
+        }
         struct member_count_access {
             count_stats stats;
         };
