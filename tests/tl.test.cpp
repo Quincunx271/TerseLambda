@@ -61,7 +61,7 @@ int main()
             count_stats stats;
         };
         stat_counts counts;
-        member_count_access counter(&counts);
+        member_count_access counter{&counts};
         [] TLR(_1.stats)(counter);
         assert(counts.num_copy_ctor == 0);
         assert(counts.num_move_ctor == 0);
