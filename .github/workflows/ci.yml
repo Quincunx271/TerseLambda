@@ -8,12 +8,12 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       matrix:
-        cxx: [g++-10, g++-11, clang++-10, clang++-11, clang++-12, clang++-13, clang++-14]
+        cxx: [g++-10, g++-11, clang++-13, clang++-14]
         std: [20]
         build_type: [Debug, Release]
 
@@ -25,11 +25,9 @@ jobs:
             sudo add-apt-repository ppa:ubuntu-toolchain-r/test
           else
             wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
-            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
-            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
-            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main"
-            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-14 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main"
+            sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-13 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-14 main"
           fi
 
           sudo apt-get update
@@ -57,6 +55,56 @@ jobs:
     - name: Run Tests
       working-directory: ${{ runner.workspace }}/build
       run: ctest -C ${{ matrix.build_type }} -VV
+
+  build-linux-20: # For compilers not on 22.04
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: [clang++-10, clang++-11, clang++-12]
+        std: [20]
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Get Dependencies
+      run: |
+        if ! command -v ${{ matrix.cxx }} &> /dev/null ; then
+          if [[ "${{matrix.cxx}}" == "g++"* ]]; then
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+          else
+            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+            sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+          fi
+
+          sudo apt-get update
+          sudo apt-get install ${{ matrix.cxx }}
+        fi
+
+    - name: Print Configuration
+      run: |
+        ${{ matrix.cxx }} --version
+        echo std=c++${{ matrix.std }}
+        cmake --version
+    - uses: actions/checkout@v2
+
+    - name: Configure
+      run: cmake -S. -B${{ runner.workspace }}/build
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+            -DCMAKE_CXX_STANDARD=${{ matrix.std }}
+            -DCMAKE_CXX_FLAGS_INIT="-Wall -Wextra -Werror"
+
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --config ${{ matrix.build_type }} -j3
+
+    - name: Run Tests
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -C ${{ matrix.build_type }} -VV
+
 
   build-windows:
     runs-on: windows-latest
@@ -121,7 +169,7 @@ jobs:
       run: ctest -C ${{ matrix.build_type }} -VV
 
   build-dds:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -149,7 +197,7 @@ jobs:
         ${{ runner.workspace }}/bin/dds build -t tools/${{ matrix.toolchain }}
 
   example-dds:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -178,7 +226,7 @@ jobs:
       continue-on-error: true # TODO(#11): migrate from DDS to BPT (BPT is the new name).
 
   example-cmake-fetchcontent:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -203,7 +251,7 @@ jobs:
       run: ctest -VV --test-dir ${{ runner.workspace }}/build
 
   example-cmake-findpackage:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
