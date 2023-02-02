@@ -7,6 +7,7 @@
 #include <cassert>
 #include <type_traits>
 #include <utility>
+#include <string>
 
 namespace {
     template <typename... Ls>
@@ -17,6 +18,23 @@ namespace {
 
     template <typename... Ls>
     overload(Ls...) -> overload<Ls...>;
+
+    struct stat_counts {
+        int num_copy_ctor = 0;
+        int num_move_ctor = 0;
+        int num_copy_assign = 0;
+        int num_move_assign = 0;
+    };
+
+    struct count_stats {
+        stat_counts* counts;
+
+        count_stats(stat_counts* counts) : counts(counts) {}
+        count_stats(const count_stats& other) : counts(other.counts) { ++counts->num_copy_ctor; }
+        count_stats(count_stats&& other) : counts(other.counts) { ++counts->num_move_ctor; }
+        count_stats& operator=(const count_stats& other) { counts = other.counts; ++counts->num_copy_assign; return *this; }
+        count_stats& operator=(count_stats&& other) { counts = other.counts; ++counts->num_move_assign; return *this; }
+    };
 }
 
 int main()
@@ -27,6 +45,28 @@ int main()
         assert([] TL(_1)(2) == 2);
         assert([] TL(_1 + _2)(1, 2) == 3);
         assert([] TL(_2)(3, 4) == 4);
+
+        // Specific types expected
+        static_assert(std::is_same_v<decltype([] TLR(42)()), int>);
+        struct member_type_access {
+            std::string str;
+            const std::string& str_ref;
+        };
+        static_assert(std::is_same_v<decltype([] TLR(TL_FWD(_1).str)(std::declval<member_type_access&&>())), std::string&&>);
+        static_assert(std::is_same_v<decltype([] TLR(_1.str)(std::declval<const member_type_access&>())), const std::string&>);
+        static_assert(std::is_same_v<decltype([] TLR(_1.str_ref)(std::declval<member_type_access>())), const std::string&>);
+        static_assert(std::is_same_v<decltype([] TL(TL_FWD(_1).str)(std::declval<member_type_access&&>())), std::string>); // If we _really_ want the by-value behavior, ask for it.
+        static_assert(std::is_same_v<decltype([] TL(_1.str)(std::declval<const member_type_access&>())), std::string>); // If we _really_ want the by-value behavior, ask for it.
+        struct member_count_access {
+            count_stats stats;
+        };
+        stat_counts counts;
+        member_count_access counter(&counts);
+        [] TLR(_1.stats)(counter);
+        assert(counts.num_copy_ctor == 0);
+        assert(counts.num_move_ctor == 0);
+        assert(counts.num_copy_assign == 0);
+        assert(counts.num_move_assign == 0);
 
         // Forwarding
         int a = 0;
