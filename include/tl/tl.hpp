@@ -38,7 +38,7 @@ Distributed under the MIT License
         [[maybe_unused]] auto&& _3 = ::tl_detail::nth<2>(TL_FWD(_args)...);                        \
         [[maybe_unused]] auto&& _4 = ::tl_detail::nth<3>(TL_FWD(_args)...);                        \
                                                                                                    \
-        return __VA_ARGS__;                                                                        \
+        return (__VA_ARGS__);                                                                      \
     }
 
 #define TL_DETAIL_REQUIRES(NOEXCEPT, ...)                                                          \
