@@ -83,22 +83,48 @@ int main()
     }
 
     // SFINAE-friendly
-    struct foo
     {
-        int value;
-    };
-    {
-        constexpr auto l = overload {
-            [] TL(_1.value + _2.value),
-            [](auto&&...) { return -10; },
+        struct foo
+        {
+            int value;
         };
-        static_assert(l(foo {42}, foo {2}) == 44);
+        // implicitly convertible from foo.
+        struct bar {
+            bar(foo) {}
+        };
+        {
+            constexpr auto l = overload {
+                [] TL(_1.value + _2.value),
+                [](auto&&...) { return -10; },
+            };
+            static_assert(l(foo {42}, foo {2}) == 44);
+        }
+        static_assert(overload {
+                          [] TL(_1.value + _2.thing), // .thing doesn't exist.
+                          [](auto&&...) { return -10; },
+                      }(foo {42}, foo {2})
+            == -10);
+        // Counterintuitively, SFINAE will prefer ordinary lambdas with a fixed
+        // number of arguments over terse lambdas:
+        static_assert(overload {
+                          // We might expect the overloads to be ambiguous, but
+                          // the ordinary lambda is selected instead. This is
+                          // an artifact of how overload resolution interacts
+                          // with variadic arguments: variadic arguments are
+                          // ordered after fixed numbers of arguments.
+                          [] TL(_1.value + _2.value),
+                          [](foo, foo) { return -10; },
+                      }(foo {42}, foo {2})
+            == -10);
+        static_assert(overload {
+                          // In this case, the ordinary lambda requires
+                          // conversions, so it is properly ordered after the
+                          // terse lambda despite this.
+                          [] TL(_1.value + _2.value),
+                          [](bar, bar) { return -10; },
+                      }(foo {42}, foo {2})
+            == 44);
     }
-    static_assert(overload {
-                      [] TL(_1.value + _2.thing), // .thing doesn't exist.
-                      [](auto&&...) { return -10; },
-                  }(foo {42}, foo {2})
-        == -10);
 
     // Value category tests.
     {
