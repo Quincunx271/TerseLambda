@@ -2,5 +2,5 @@
     name: 'ExampleProject',
     version: '0.0.0',
     namespace: 'Example',
-    depends: ['terse-lambda@1.0.0-alpha.1']
+    depends: ['terse-lambda@1.0.0']
 }

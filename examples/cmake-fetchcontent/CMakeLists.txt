@@ -5,7 +5,7 @@ project(Example
   DESCRIPTION "Example project for using TerseLambda via FetchContent"
 )
 
-set(TERSE_LAMBDA_COMMITISH v1.0.0-alpha.1 CACHE STRING "The commit/branch/tag to use")
+set(TERSE_LAMBDA_COMMITISH v1.0.0 CACHE STRING "The commit/branch/tag to use")
 
 include(FetchContent)
 FetchContent_Declare(
