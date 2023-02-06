@@ -43,10 +43,10 @@ Distributed under the MIT License
     }
 
 #define TL_DETAIL_REQUIRES(NOEXCEPT, ...)                                                          \
-    requires(decltype(::tl_detail::nth<0>(TL_FWD(_args)...)) _1,                                   \
-        decltype(::tl_detail::nth<1>(TL_FWD(_args)...)) _2,                                        \
-        decltype(::tl_detail::nth<2>(TL_FWD(_args)...)) _3,                                        \
-        decltype(::tl_detail::nth<3>(TL_FWD(_args)...)) _4) {                                      \
+    requires(::tl_detail::nth_t<0, TL_DETAIL_ID(TlArgs)...> _1,                                    \
+        ::tl_detail::nth_t<1, TL_DETAIL_ID(TlArgs)...> _2,                                         \
+        ::tl_detail::nth_t<2, TL_DETAIL_ID(TlArgs)...> _3,                                         \
+        ::tl_detail::nth_t<3, TL_DETAIL_ID(TlArgs)...> _4) {                                       \
         {__VA_ARGS__} NOEXCEPT;                                                                    \
     }
 
@@ -104,4 +104,7 @@ namespace tl_detail {
             return not_a_parameter {};
         }
     }
+
+    template <int N, typename... Ts>
+    using nth_t = decltype(nth<N>(tl_detail::declval<Ts&&>()...));
 }
