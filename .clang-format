@@ -1,5 +1,5 @@
 AllowShortIfStatementsOnASingleLine: true
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: true
 AlwaysBreakTemplateDeclarations: true
 BasedOnStyle: WebKit
 BreakBeforeBraces: Custom
