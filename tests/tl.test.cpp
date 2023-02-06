@@ -5,12 +5,13 @@
 #endif
 
 #include <cassert>
+#include <string>
 #include <type_traits>
 #include <utility>
-#include <string>
 
 namespace {
-    // For testing how [] TL(...) behaves when it is overloaded. This is particularly relevant to SFINAE friendliness.
+    // For testing how [] TL(...) behaves when it is overloaded. This is particularly relevant to
+    // SFINAE friendliness.
     template <typename... Ls>
     struct overload : Ls...
     {
@@ -20,7 +21,8 @@ namespace {
     template <typename... Ls>
     explicit overload(Ls...) -> overload<Ls...>;
 
-    struct stat_counts {
+    struct stat_counts
+    {
         int num_copy_ctor = 0;
         int num_move_ctor = 0;
         int num_copy_assign = 0;
@@ -28,14 +30,17 @@ namespace {
     };
 
     // Counts copy/move operations, for verifying that we do not have unexpected copies or moves.
-    struct count_stats {
+    struct count_stats
+    {
         stat_counts* counts;
 
+        // clang-format off
         count_stats(stat_counts* counts) : counts(counts) {}
         count_stats(const count_stats& other) : counts(other.counts) { ++counts->num_copy_ctor; }
         count_stats(count_stats&& other) : counts(other.counts) { ++counts->num_move_ctor; }
         count_stats& operator=(const count_stats& other) { counts = other.counts; ++counts->num_copy_assign; return *this; }
         count_stats& operator=(count_stats&& other) { counts = other.counts; ++counts->num_move_assign; return *this; }
+        // clang-format on
     };
 }
 
@@ -60,7 +65,7 @@ int main()
     // argument to a std algorithm).
     assert([] TL(_1)(1, 2, 3) == 1); // You can pass more arguments than are used.
     assert([] TL(42)(3) == 42); // Including if you don't use any of the arguments.
-    
+
     // Variadic usage examples.
     {
         // non-capturing
@@ -89,8 +94,9 @@ int main()
             int value;
         };
         // implicitly convertible from foo.
-        struct bar {
-            bar(foo) {}
+        struct bar
+        {
+            bar(foo) { }
         };
         {
             constexpr auto l = overload {
@@ -150,44 +156,54 @@ int main()
     // decltype(foo.str) is `std::string` regardless of the value category of
     // `foo`. We want uses of it in the lambda to inherit its category from the
     // value category of `foo`.
-    struct member_type_access {
+    struct member_type_access
+    {
         std::string str;
         const std::string& str_ref;
     };
     {
         constexpr auto fn = [] TLR(TL_FWD(_1).str);
-        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&&>);
-        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
+        static_assert(
+            std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&&>);
+        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())),
+            const std::string&>);
     }
     {
         constexpr auto fn = [] TLR(_1.str);
-        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
+        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())),
+            const std::string&>);
         // This is a gotcha case, but it's the same as ordinary C++ functions.
         // If you don't move the function argument `_1`, it will be an lvalue
         // reference.
-        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&>);
+        static_assert(
+            std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&>);
     }
     {
         constexpr auto fn = [] TLR(_1.str_ref);
         // The value category can't override the data member.
-        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), const std::string&>);
+        static_assert(
+            std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), const std::string&>);
     }
     {
-        // If we _really_ want the by-value behavior, ask for it by using `[] TL(...)` instead of `[] TLR(...)`.
+        // If we _really_ want the by-value behavior, ask for it by using `[] TL(...)` instead of
+        // `[] TLR(...)`.
         constexpr auto fn = [] TL(TL_FWD(_1).str);
-        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string>);
+        static_assert(
+            std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string>);
     }
     {
         constexpr auto fn = [] TL(_1.str); // If we _really_ want the by-value behavior, ask for it.
-        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), std::string>);
+        static_assert(
+            std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), std::string>);
     }
     // Ensure there's no extra copies of members. This tests the same thing as
     // the prior typed tests, but in a different way.
-    struct member_count_access {
+    struct member_count_access
+    {
         count_stats stats;
     };
     stat_counts counts;
-    member_count_access counter{&counts};
+    member_count_access counter {&counts};
     [] TLR(_1.stats)(counter);
     assert(counts.num_copy_ctor == 0);
     assert(counts.num_move_ctor == 0);
