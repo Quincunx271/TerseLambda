@@ -10,6 +10,7 @@
 #include <string>
 
 namespace {
+    // For testing how [] TL(...) behaves when it is overloaded. This is particularly relevant to SFINAE friendliness.
     template <typename... Ls>
     struct overload : Ls...
     {
@@ -17,7 +18,7 @@ namespace {
     };
 
     template <typename... Ls>
-    overload(Ls...) -> overload<Ls...>;
+    explicit overload(Ls...) -> overload<Ls...>;
 
     struct stat_counts {
         int num_copy_ctor = 0;
@@ -26,6 +27,7 @@ namespace {
         int num_move_assign = 0;
     };
 
+    // Counts copy/move operations, for verifying that we do not have unexpected copies or moves.
     struct count_stats {
         stat_counts* counts;
 
@@ -37,133 +39,29 @@ namespace {
     };
 }
 
+// Rather than using a testing framework, we test directly in main() to avoid dependencies.
 int main()
 {
-    // TL(...)
+    // Straightforward usage examples.
+    assert([] TL(_1)(2) == 2);
+    assert([] TL(_1 + _2)(1, 2) == 3);
+    assert([] TL(_2)(3, 4) == 4);
+    // Capturing works.
     {
-        // basic
-        assert([] TL(_1)(2) == 2);
-        assert([] TL(_1 + _2)(1, 2) == 3);
-        assert([] TL(_2)(3, 4) == 4);
-
-        // Specific types expected
-        {
-            constexpr auto fn = [] TLR(42);
-        static_assert(std::is_same_v<decltype(fn()), int>);
-        }
-        struct member_type_access {
-            std::string str;
-            const std::string& str_ref;
-        };
-        {
-            constexpr auto fn = [] TLR(TL_FWD(_1).str);
-            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&&>);
-        }
-        {
-            constexpr auto fn = [] TLR(_1.str);
-            static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
-        }
-        {
-            constexpr auto fn = [] TLR(_1.str_ref);
-            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access>())), const std::string&>);
-        }
-        {
-            constexpr auto fn = [] TL(TL_FWD(_1).str); // If we _really_ want the by-value behavior, ask for it.
-            static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string>);
-        }
-        {
-            constexpr auto fn = [] TL(_1.str); // If we _really_ want the by-value behavior, ask for it.
-            static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), std::string>);
-        }
-        struct member_count_access {
-            count_stats stats;
-        };
-        stat_counts counts;
-        member_count_access counter{&counts};
-        [] TLR(_1.stats)(counter);
-        assert(counts.num_copy_ctor == 0);
-        assert(counts.num_move_ctor == 0);
-        assert(counts.num_copy_assign == 0);
-        assert(counts.num_move_assign == 0);
-
-        // Forwarding
-        int a = 0;
-        int const b = 0;
-        constexpr auto fn = [] TLR(TL_FWD(_1));
-        static_assert(std::is_same_v<decltype(fn(a)), int&>);
-        static_assert(std::is_same_v<decltype(fn(std::move(a))), int&&>);
-        static_assert(std::is_same_v<decltype(fn(b)), int const&>);
-        static_assert(std::is_same_v<decltype(fn(std::move(b))), int const&&>);
-
-        assert(&fn(a) == &a);
-        assert(&fn(b) == &b);
-
-        // SFINAE-friendly
-        struct foo
-        {
-            int value;
-        };
-
-        {
-            auto l = overload {
-                [] TL(_1.value + _2.value),
-                [](auto&&...) { return -10; },
-            };
-            static_assert(l(foo {42}, foo {2}) == 44);
-        }
-
-        static_assert(overload {
-                          [] TL(_1.value + _2.thing),
-                          [](auto&&...) { return -10; },
-                      }(foo {42}, foo {2})
-            == -10);
-
-        // noexcept-friendly
-        struct bar
-        {
-            bool yes() const noexcept
-            {
-                return true;
-            }
-            bool no() const
-            {
-                return false;
-            }
-        };
-        struct baz
-        {
-            bool yes() const noexcept(false)
-            {
-                return true;
-            }
-        };
-        {
-            auto l = [] TL(_1.yes());
-            static_assert(noexcept(l(bar {})));
-        }
-        {
-            auto l = [] TL(_1.no());
-            static_assert(!noexcept(l(bar {})));
-        }
-        {
-            auto l = [] TL((_args.yes() && ...));
-            static_assert(noexcept(l(bar {})));
-        }
-        {
-            auto l = [] TL((_args.no() && ...));
-            static_assert(!noexcept(l(bar {})));
-        }
-        {
-            auto l = [] TL((_args.no() && ...));
-            static_assert(noexcept(l()));
-        }
-        {
-            auto l = [] TL((_args.yes() && ...));
-            static_assert(!noexcept(l(bar {}, baz {})));
-        }
+        int i = 42;
+        assert([i] TL(i + _1)(-42) == 0);
+        auto sum = [i] TL(i + (_args + ...));
+        assert(sum(1) == 43);
+        assert(sum(-42, 1, 2) == 3);
     }
-
-    // TLV
+    // Possibly counterintuitive examples.
+    // This is okay, because you should generally use `[] TL(...)` in a narrow
+    // scope where it's clear what the lambda is being called with (e.g. as an
+    // argument to a std algorithm).
+    assert([] TL(_1)(1, 2, 3) == 1); // You can pass more arguments than are used.
+    assert([] TL(42)(3) == 42); // Including if you don't use any of the arguments.
+    
+    // Variadic usage examples.
     {
         // non-capturing
         auto sum = [] TL((_args + ...));
@@ -177,17 +75,132 @@ int main()
         {
             int value;
         };
-
         static_assert(overload {
                           [] TL((_args.thing + ...)),
-                          [](auto&& it) { return it.value; },
+                          [](auto&&... it) { return (it.value + ...); },
                       }(foo {42})
             == 42);
     }
+
+    // SFINAE-friendly
+    struct foo
     {
-        // capturing works
-        int i = 42;
-        auto sum = [i] TL(i + (_args + ...));
-        assert(sum(1) == 43);
+        int value;
+    };
+    {
+        constexpr auto l = overload {
+            [] TL(_1.value + _2.value),
+            [](auto&&...) { return -10; },
+        };
+        static_assert(l(foo {42}, foo {2}) == 44);
+    }
+    static_assert(overload {
+                      [] TL(_1.value + _2.thing), // .thing doesn't exist.
+                      [](auto&&...) { return -10; },
+                  }(foo {42}, foo {2})
+        == -10);
+
+    // Value category tests.
+    {
+        // prvalues are respected.
+        constexpr auto fn = [] TLR(42);
+        static_assert(std::is_same_v<decltype(fn()), int>);
+    }
+    {
+        // Forwarding works.
+        int a = 0;
+        int const b = 0;
+        constexpr auto fn = [] TLR(TL_FWD(_1));
+        static_assert(std::is_same_v<decltype(fn(a)), int&>);
+        static_assert(std::is_same_v<decltype(fn(std::move(a))), int&&>);
+        static_assert(std::is_same_v<decltype(fn(b)), int const&>);
+        static_assert(std::is_same_v<decltype(fn(std::move(b))), int const&&>);
+
+        assert(&fn(a) == &a);
+        assert(&fn(b) == &b);
+    }
+
+    // Value category tests when accessing a data member.
+    // decltype(foo.str) is `std::string` regardless of the value category of
+    // `foo`. We want uses of it in the lambda to inherit its category from the
+    // value category of `foo`.
+    struct member_type_access {
+        std::string str;
+        const std::string& str_ref;
+    };
+    {
+        constexpr auto fn = [] TLR(TL_FWD(_1).str);
+        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&&>);
+        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
+    }
+    {
+        constexpr auto fn = [] TLR(_1.str);
+        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), const std::string&>);
+        // This is a gotcha case, but it's the same as ordinary C++ functions.
+        // If you don't move the function argument `_1`, it will be an lvalue
+        // reference.
+        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string&>);
+    }
+    {
+        constexpr auto fn = [] TLR(_1.str_ref);
+        // The value category can't override the data member.
+        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), const std::string&>);
+    }
+    {
+        // If we _really_ want the by-value behavior, ask for it by using `[] TL(...)` instead of `[] TLR(...)`.
+        constexpr auto fn = [] TL(TL_FWD(_1).str);
+        static_assert(std::is_same_v<decltype(fn(std::declval<member_type_access&&>())), std::string>);
+    }
+    {
+        constexpr auto fn = [] TL(_1.str); // If we _really_ want the by-value behavior, ask for it.
+        static_assert(std::is_same_v<decltype(fn(std::declval<const member_type_access&>())), std::string>);
+    }
+    // Ensure there's no extra copies of members. This tests the same thing as
+    // the prior typed tests, but in a different way.
+    struct member_count_access {
+        count_stats stats;
+    };
+    stat_counts counts;
+    member_count_access counter{&counts};
+    [] TLR(_1.stats)(counter);
+    assert(counts.num_copy_ctor == 0);
+    assert(counts.num_move_ctor == 0);
+    assert(counts.num_copy_assign == 0);
+    assert(counts.num_move_assign == 0);
+
+    // noexcept-friendly
+    struct bar
+    {
+        bool yes() const noexcept { return true; }
+        bool no() const { return false; }
+    };
+    struct baz
+    {
+        // Same name as bar::yes, but not actually noexcept (for variadic verification).
+        bool yes() const noexcept(false) { return true; }
+    };
+    {
+        auto l = [] TL(_1.yes());
+        static_assert(noexcept(l(bar {})));
+    }
+    {
+        auto l = [] TL(_1.no());
+        static_assert(!noexcept(l(bar {})));
+    }
+    {
+        auto l = [] TL((_args.yes() && ...));
+        static_assert(noexcept(l(bar {})));
+    }
+    {
+        auto l = [] TL((_args.no() && ...));
+        static_assert(!noexcept(l(bar {})));
+    }
+    {
+        auto l = [] TL((_args.no() && ...));
+        static_assert(noexcept(l()));
+    }
+    {
+        auto l = [] TL((_args.yes() && ...));
+        static_assert(!noexcept(l(bar {}, baz {})));
     }
 }
