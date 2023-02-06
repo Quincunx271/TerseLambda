@@ -31,7 +31,8 @@ Distributed under the MIT License
 #define TLR(...)                                                                                   \
     <typename... TL_DETAIL_ID(TlArgs)>(TL_DETAIL_ID(TlArgs) && ... _args) noexcept(                \
         TL_DETAIL_REQUIRES(noexcept, __VA_ARGS__))                                                 \
-        ->decltype(auto) requires TL_DETAIL_REQUIRES(, __VA_ARGS__)                                \
+        ->decltype(auto)                                                                           \
+        requires TL_DETAIL_REQUIRES(, __VA_ARGS__)                                                 \
     {                                                                                              \
         [[maybe_unused]] auto&& _1 = ::tl_detail::nth<0>(TL_FWD(_args)...);                        \
         [[maybe_unused]] auto&& _2 = ::tl_detail::nth<1>(TL_FWD(_args)...);                        \
@@ -45,8 +46,7 @@ Distributed under the MIT License
     requires(decltype(::tl_detail::nth<0>(TL_FWD(_args)...)) _1,                                   \
         decltype(::tl_detail::nth<1>(TL_FWD(_args)...)) _2,                                        \
         decltype(::tl_detail::nth<2>(TL_FWD(_args)...)) _3,                                        \
-        decltype(::tl_detail::nth<3>(TL_FWD(_args)...)) _4)                                        \
-    {                                                                                              \
+        decltype(::tl_detail::nth<3>(TL_FWD(_args)...)) _4) {                                      \
         {__VA_ARGS__} NOEXCEPT;                                                                    \
     }
 
